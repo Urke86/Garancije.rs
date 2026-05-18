@@ -1,12 +1,25 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/colors';
+import { fontFamily } from '@/lib/typography';
 import { Camera, Image as ImageIcon, Scan } from 'lucide-react-native';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Card } from '@/components/ui/Card';
 
 export default function ScanScreen() {
   const { user } = useAuth();
@@ -45,7 +58,7 @@ export default function ScanScreen() {
 
       if (!base64Data && Platform.OS !== 'web') {
         base64Data = await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: FileSystem.EncodingType.Base64,
+          encoding: 'base64',
         });
       }
 
@@ -72,7 +85,7 @@ export default function ScanScreen() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ image_base64: base64Data }),
@@ -85,7 +98,14 @@ export default function ScanScreen() {
           pathname: '/receipt/edit',
           params: {
             image_url: urlData.publicUrl,
-            ocr_data: JSON.stringify({ store_name: '', purchase_date: '', total_amount: '', items: [], pib: '', receipt_number: '' }),
+            ocr_data: JSON.stringify({
+              store_name: '',
+              purchase_date: '',
+              total_amount: '',
+              items: [],
+              pib: '',
+              receipt_number: '',
+            }),
           },
         });
         setLoading(false);
@@ -99,60 +119,72 @@ export default function ScanScreen() {
           ocr_data: JSON.stringify(ocrResult),
         },
       });
-    } catch (err: any) {
-      setError('Greška: ' + (err.message || 'Nepoznata greška'));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Nepoznata greška';
+      setError('Greška: ' + message);
     }
     setLoading(false);
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Skeniraj račun</Text>
-        <Text style={styles.subtitle}>Slikajte ili izaberite sliku fiskalnog računa</Text>
-      </View>
+    <AppScreen>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          title="Skeniraj račun"
+          subtitle="Slikajte ili izaberite fiskalni račun — OCR prepoznaje podatke automatski"
+        />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
 
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Obrađujem račun...</Text>
-          <Text style={styles.loadingSubtext}>OCR prepoznavanje teksta</Text>
-        </View>
-      ) : image ? (
-        <View style={styles.preview}>
-          <Image source={{ uri: image }} style={styles.previewImage} resizeMode="contain" />
-        </View>
-      ) : (
-        <View style={styles.actions}>
-          <TouchableOpacity style={styles.actionCard} onPress={() => pickImage(true)}>
-            <View style={styles.actionIcon}>
-              <Camera size={32} color={colors.primary} />
-            </View>
-            <Text style={styles.actionTitle}>Slikaj račun</Text>
-            <Text style={styles.actionDescription}>Koristite kameru za snimanje</Text>
-          </TouchableOpacity>
+        {loading ? (
+          <Card style={styles.loadingCard}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Obrađujem račun...</Text>
+            <Text style={styles.loadingSubtext}>Otpremanje slike i OCR prepoznavanje</Text>
+          </Card>
+        ) : image ? (
+          <View style={styles.previewWrap}>
+            <Image source={{ uri: image }} style={styles.previewImage} resizeMode="contain" />
+            {!loading ? (
+              <TouchableOpacity style={styles.retryRow} onPress={() => setImage(null)}>
+                <Scan size={20} color={colors.accent} />
+                <Text style={styles.retryText}>Skeniraj ponovo</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        ) : (
+          <View style={styles.actions}>
+            <TouchableOpacity onPress={() => pickImage(true)} activeOpacity={0.85}>
+              <Card style={styles.actionCard}>
+                <View style={[styles.actionIcon, { backgroundColor: colors.accentLight }]}>
+                  <Camera size={32} color={colors.primary} />
+                </View>
+                <Text style={styles.actionTitle}>Slikaj račun</Text>
+                <Text style={styles.actionDescription}>Koristite kameru za snimanje</Text>
+              </Card>
+            </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={() => pickImage(false)}>
-            <View style={styles.actionIcon}>
-              <ImageIcon size={32} color={colors.secondary} />
-            </View>
-            <Text style={styles.actionTitle}>Izaberi iz galerije</Text>
-            <Text style={styles.actionDescription}>Izaberite postojeću sliku</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {image && !loading && (
-        <View style={styles.retryContainer}>
-          <TouchableOpacity style={styles.retryButton} onPress={() => setImage(null)}>
-            <Scan size={20} color={colors.primary} />
-            <Text style={styles.retryText}>Skeniraj ponovo</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </View>
+            <TouchableOpacity onPress={() => pickImage(false)} activeOpacity={0.85}>
+              <Card style={styles.actionCard}>
+                <View style={[styles.actionIcon, { backgroundColor: colors.accentGreenLight }]}>
+                  <ImageIcon size={32} color={colors.primary} />
+                </View>
+                <Text style={styles.actionTitle}>Izaberi iz galerije</Text>
+                <Text style={styles.actionDescription}>Izaberite postojeću sliku</Text>
+              </Card>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </AppScreen>
   );
 }
 
@@ -166,31 +198,77 @@ function decode(base64: string): Uint8Array {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: 60 },
-  header: { marginBottom: 24 },
-  title: { fontSize: 24, fontFamily: 'Inter-Bold', color: colors.text },
-  subtitle: { fontSize: 15, fontFamily: 'Inter-Regular', color: colors.textSecondary, marginTop: 4 },
-  error: {
-    color: colors.error, fontSize: 14, fontFamily: 'Inter-Regular',
-    backgroundColor: colors.errorLight, padding: 12, borderRadius: 8, marginBottom: 16,
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingBottom: 120 },
+  errorBanner: {
+    backgroundColor: colors.errorLight,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.2)',
   },
-  actions: { flex: 1, justifyContent: 'center', gap: 16 },
-  actionCard: {
-    backgroundColor: colors.surface, borderRadius: 16, padding: 24,
-    alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    fontFamily: fontFamily.medium,
+    lineHeight: 20,
   },
+  actions: { gap: 14, marginTop: 8 },
+  actionCard: { alignItems: 'center' },
   actionIcon: {
-    width: 64, height: 64, borderRadius: 16, backgroundColor: colors.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
-  actionTitle: { fontSize: 17, fontFamily: 'Inter-SemiBold', color: colors.text, marginBottom: 4 },
-  actionDescription: { fontSize: 14, fontFamily: 'Inter-Regular', color: colors.textSecondary },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
-  loadingText: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: colors.text },
-  loadingSubtext: { fontSize: 14, fontFamily: 'Inter-Regular', color: colors.textSecondary },
-  preview: { flex: 1, borderRadius: 12, overflow: 'hidden', marginBottom: 16 },
-  previewImage: { flex: 1, borderRadius: 12 },
-  retryContainer: { alignItems: 'center', paddingBottom: 16 },
-  retryButton: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 },
-  retryText: { fontSize: 15, fontFamily: 'Inter-Medium', color: colors.primary },
+  actionTitle: {
+    fontSize: 17,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  actionDescription: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  loadingCard: {
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 24,
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+  },
+  previewWrap: { flex: 1, minHeight: 320, marginTop: 8 },
+  previewImage: {
+    width: '100%',
+    height: 360,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+  },
+  retryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 20,
+  },
+  retryText: {
+    fontSize: 15,
+    fontFamily: fontFamily.semibold,
+    color: colors.accent,
+  },
 });

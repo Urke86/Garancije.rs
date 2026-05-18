@@ -3,7 +3,13 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } fr
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/colors';
-import { Bell, BellOff, Check } from 'lucide-react-native';
+import { fontFamily } from '@/lib/typography';
+import { Bell, Check } from 'lucide-react-native';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface Reminder {
   id: string;
@@ -50,83 +56,150 @@ export default function RemindersScreen() {
 
   const renderReminder = ({ item }: { item: Reminder }) => {
     const isPast = new Date(item.remind_at) <= new Date();
+    const urgent = isPast && !item.is_sent;
+
     return (
-      <View style={[styles.card, item.is_sent && styles.cardDismissed]}>
-        <View style={[styles.iconContainer, isPast && !item.is_sent && styles.iconActive]}>
+      <Card
+        style={[
+          styles.reminderCard,
+          item.is_sent && styles.dismissed,
+          urgent && styles.urgentBorder,
+        ]}
+      >
+        <View style={[styles.iconContainer, urgent && styles.iconUrgent]}>
           {item.is_sent ? (
             <Check size={18} color={colors.textMuted} />
           ) : (
-            <Bell size={18} color={isPast ? colors.textInverse : colors.primary} />
+            <Bell size={18} color={urgent ? colors.textInverse : colors.primary} />
           )}
         </View>
         <View style={styles.content}>
-          <Text style={[styles.message, item.is_sent && styles.messageDismissed]}>{item.message}</Text>
+          <Text style={[styles.message, item.is_sent && styles.messageDismissed]}>
+            {item.message}
+          </Text>
           <Text style={styles.meta}>
-            {item.receipt_items?.name} - {item.receipt_items?.receipts?.store_name}
+            {item.receipt_items?.name} — {item.receipt_items?.receipts?.store_name}
           </Text>
           <Text style={styles.date}>
-            {new Date(item.remind_at).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date(item.remind_at).toLocaleDateString('sr-RS', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
           </Text>
         </View>
-        {!item.is_sent && (
-          <TouchableOpacity style={styles.dismissButton} onPress={() => dismissReminder(item.id)}>
+        {!item.is_sent ? (
+          <TouchableOpacity
+            style={styles.dismissButton}
+            onPress={() => dismissReminder(item.id)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Check size={18} color={colors.primary} />
           </TouchableOpacity>
-        )}
-      </View>
+        ) : null}
+      </Card>
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Podsetnici</Text>
-        <Text style={styles.subtitle}>{pending.length} aktivnih podsetnika</Text>
+  const listHeader = (
+    <View style={styles.headerPad}>
+      <ScreenHeader
+        title="Podsetnici"
+        subtitle={`${pending.length} aktivnih podsetnika`}
+      />
+      {pending.length > 0 ? <SectionHeader title="Aktivni" /> : null}
+    </View>
+  );
+
+  const listFooter =
+    dismissed.length > 0 ? (
+      <View style={styles.footer}>
+        <SectionHeader title="Završeni" />
+        {dismissed.map((item) => (
+          <View key={item.id}>{renderReminder({ item })}</View>
+        ))}
       </View>
+    ) : null;
+
+  return (
+    <AppScreen>
       <FlatList
-        data={[...pending, ...dismissed]}
+        data={pending}
         keyExtractor={(item) => item.id}
         renderItem={renderReminder}
+        ListHeaderComponent={listHeader}
+        ListFooterComponent={listFooter}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <BellOff size={48} color={colors.textMuted} />
-            <Text style={styles.emptyTitle}>Nema podsetnika</Text>
-            <Text style={styles.emptyText}>Podsetnici se kreiraju automatski kada dodate proizvode sa garancijom</Text>
-          </View>
+          reminders.length === 0 ? (
+            <EmptyState
+              title="Nema podsetnika"
+              description="Podsetnici se kreiraju automatski kada dodate proizvode sa garancijom."
+            />
+          ) : null
         }
       />
-    </View>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 16 },
-  title: { fontSize: 24, fontFamily: 'Inter-Bold', color: colors.text },
-  subtitle: { fontSize: 14, fontFamily: 'Inter-Regular', color: colors.textSecondary, marginTop: 4 },
-  list: { padding: 24, paddingTop: 0, gap: 12 },
-  card: {
-    backgroundColor: colors.surface, borderRadius: 12, padding: 16,
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
+  headerPad: { paddingHorizontal: 20 },
+  list: { paddingBottom: 100 },
+  reminderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 10,
   },
-  cardDismissed: { opacity: 0.6 },
+  dismissed: { opacity: 0.55 },
+  urgentBorder: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.accent,
+  },
   iconContainer: {
-    width: 36, height: 36, borderRadius: 10, backgroundColor: colors.primaryLight + '20',
-    alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  iconActive: { backgroundColor: colors.primary },
+  iconUrgent: { backgroundColor: colors.primary },
   content: { flex: 1 },
-  message: { fontSize: 14, fontFamily: 'Inter-Medium', color: colors.text },
-  messageDismissed: { textDecorationLine: 'line-through', color: colors.textMuted },
-  meta: { fontSize: 13, fontFamily: 'Inter-Regular', color: colors.textSecondary, marginTop: 2 },
-  date: { fontSize: 12, fontFamily: 'Inter-Regular', color: colors.textMuted, marginTop: 4 },
-  dismissButton: {
-    width: 32, height: 32, borderRadius: 8, backgroundColor: colors.surfaceAlt,
-    alignItems: 'center', justifyContent: 'center',
+  message: {
+    fontSize: 14,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
   },
-  empty: { alignItems: 'center', paddingVertical: 64, gap: 12 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: colors.text },
-  emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: colors.textSecondary, textAlign: 'center', paddingHorizontal: 32 },
+  messageDismissed: {
+    textDecorationLine: 'line-through',
+    color: colors.textMuted,
+    fontFamily: fontFamily.regular,
+  },
+  meta: {
+    fontSize: 13,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  date: {
+    fontSize: 12,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  dismissButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footer: { marginTop: 8 },
 });

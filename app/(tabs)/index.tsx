@@ -1,11 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/colors';
-import { getDaysUntilExpiry, getWarrantyStatus } from '@/lib/warranty';
-import { Camera, ShieldCheck, TriangleAlert as AlertTriangle, Circle as XCircle } from 'lucide-react-native';
+import { getWarrantyStatus } from '@/lib/warranty';
+import { getTimeGreeting, getGreetingName, getUserInitials } from '@/lib/greeting';
+import { Camera } from 'lucide-react-native';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { WarrantySummaryCard } from '@/components/ui/WarrantySummaryCard';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { ExpiringItemCard } from '@/components/ui/ExpiringItemCard';
+import { ReceiptListCard } from '@/components/ui/ReceiptListCard';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 interface WarrantyItem {
   id: string;
@@ -16,28 +25,52 @@ interface WarrantyItem {
   receipts: { store_name: string };
 }
 
+interface RecentReceipt {
+  id: string;
+  store_name: string;
+  purchase_date: string;
+  total_amount: number;
+  receipt_items: { id: string; name: string; warranty_expires_at: string | null }[];
+}
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const [items, setItems] = useState<WarrantyItem[]>([]);
+  const [recentReceipts, setRecentReceipts] = useState<RecentReceipt[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, expired: 0 });
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('receipt_items')
-      .select('id, name, warranty_expires_at, receipt_id, category, receipts(store_name)')
-      .eq('user_id', user.id)
-      .not('warranty_expires_at', 'is', null)
-      .order('warranty_expires_at', { ascending: true });
+    const [itemsRes, receiptsRes] = await Promise.all([
+      supabase
+        .from('receipt_items')
+        .select('id, name, warranty_expires_at, receipt_id, category, receipts(store_name)')
+        .eq('user_id', user.id)
+        .not('warranty_expires_at', 'is', null)
+        .order('warranty_expires_at', { ascending: true }),
+      supabase
+        .from('receipts')
+        .select('id, store_name, purchase_date, total_amount, receipt_items(id, name, warranty_expires_at)')
+        .eq('user_id', user.id)
+        .order('purchase_date', { ascending: false })
+        .limit(3),
+    ]);
 
-    if (data) {
-      setItems(data as unknown as WarrantyItem[]);
-      const active = data.filter((i) => getWarrantyStatus(i.warranty_expires_at!) === 'active').length;
-      const expiring = data.filter((i) => getWarrantyStatus(i.warranty_expires_at!) === 'expiring').length;
-      const expired = data.filter((i) => getWarrantyStatus(i.warranty_expires_at!) === 'expired').length;
+    if (itemsRes.data) {
+      const data = itemsRes.data as unknown as WarrantyItem[];
+      setItems(data);
+      const active = data.filter((i) => getWarrantyStatus(i.warranty_expires_at) === 'active').length;
+      const expiring = data.filter((i) => getWarrantyStatus(i.warranty_expires_at) === 'expiring').length;
+      const expired = data.filter((i) => getWarrantyStatus(i.warranty_expires_at) === 'expired').length;
       setStats({ total: data.length, active, expiring, expired });
     }
+
+    if (receiptsRes.data) {
+      setRecentReceipts(receiptsRes.data as RecentReceipt[]);
+    }
+    setLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -51,121 +84,103 @@ export default function HomeScreen() {
   };
 
   const expiringItems = items.filter((i) => getWarrantyStatus(i.warranty_expires_at) === 'expiring');
+  const name = getGreetingName(user);
+  const greetingLine = name ? `${getTimeGreeting()}, ${name}` : getTimeGreeting();
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
-    >
-      <View style={styles.header}>
-        <Text style={styles.greeting}>Zdravo!</Text>
-        <Text style={styles.subtitle}>Vaš digitalni garancijski novčanik</Text>
-      </View>
+    <AppScreen>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader
+          greeting={greetingLine}
+          title="Vaš garancijski novčanik"
+          subtitle="Sve garancije na jednom mestu"
+          avatarLabel={getUserInitials(user)}
+          onAvatarPress={() => router.push('/(tabs)/profile')}
+        />
 
-      <View style={styles.statsRow}>
-        <View style={[styles.statCard, { backgroundColor: colors.successLight }]}>
-          <ShieldCheck size={20} color={colors.success} />
-          <Text style={[styles.statNumber, { color: colors.success }]}>{stats.active}</Text>
-          <Text style={styles.statLabel}>Aktivne</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.warningLight }]}>
-          <AlertTriangle size={20} color={colors.warning} />
-          <Text style={[styles.statNumber, { color: colors.warning }]}>{stats.expiring}</Text>
-          <Text style={styles.statLabel}>Ističu</Text>
-        </View>
-        <View style={[styles.statCard, { backgroundColor: colors.errorLight }]}>
-          <XCircle size={20} color={colors.error} />
-          <Text style={[styles.statNumber, { color: colors.error }]}>{stats.expired}</Text>
-          <Text style={styles.statLabel}>Istekle</Text>
-        </View>
-      </View>
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        ) : (
+          <>
+            <WarrantySummaryCard
+              total={stats.total}
+              active={stats.active}
+              expiring={stats.expiring}
+              expired={stats.expired}
+            />
 
-      <TouchableOpacity style={styles.scanButton} onPress={() => router.push('/(tabs)/scan')}>
-        <Camera size={24} color={colors.textInverse} />
-        <Text style={styles.scanButtonText}>Skeniraj novi račun</Text>
-      </TouchableOpacity>
+            {stats.total === 0 ? (
+              <EmptyState
+                showBrand
+                title="Nemate sačuvanih računa"
+                description="Skenirajte prvi fiskalni račun — OCR će automatski prepoznati prodavnicu, stavke i datume garancije."
+                actionLabel="Skeniraj prvi račun"
+                onAction={() => router.push('/(tabs)/scan')}
+              />
+            ) : (
+              <>
+                <PrimaryButton
+                  title="Skeniraj novi račun"
+                  onPress={() => router.push('/(tabs)/scan')}
+                  icon={<Camera size={22} color={colors.textInverse} />}
+                  style={styles.scanCta}
+                />
 
-      {expiringItems.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Uskoro ističe garancija</Text>
-          {expiringItems.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.warningCard}
-              onPress={() => router.push(`/receipt/${item.receipt_id}`)}
-            >
-              <View style={styles.warningIcon}>
-                <AlertTriangle size={18} color={colors.warning} />
-              </View>
-              <View style={styles.warningContent}>
-                <Text style={styles.warningName}>{item.name}</Text>
-                <Text style={styles.warningStore}>{item.receipts?.store_name}</Text>
-              </View>
-              <Text style={styles.warningDays}>
-                {getDaysUntilExpiry(item.warranty_expires_at)} dana
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+                {expiringItems.length > 0 ? (
+                  <View style={styles.section}>
+                    <SectionHeader title="Uskoro ističe" />
+                    {expiringItems.map((item) => (
+                      <ExpiringItemCard
+                        key={item.id}
+                        name={item.name}
+                        storeName={item.receipts?.store_name}
+                        warrantyExpiresAt={item.warranty_expires_at}
+                        onPress={() => router.push(`/receipt/${item.receipt_id}`)}
+                      />
+                    ))}
+                  </View>
+                ) : null}
 
-      {items.length === 0 && (
-        <View style={styles.emptyState}>
-          <ShieldCheck size={48} color={colors.textMuted} />
-          <Text style={styles.emptyTitle}>Nemate sačuvanih računa</Text>
-          <Text style={styles.emptyText}>Skenirajte prvi račun da biste počeli da pratite garancije</Text>
-        </View>
-      )}
-    </ScrollView>
+                {recentReceipts.length > 0 ? (
+                  <View style={styles.section}>
+                    <SectionHeader
+                      title="Nedavni računi"
+                      actionLabel="Vidi sve"
+                      onAction={() => router.push('/(tabs)/timeline')}
+                    />
+                    {recentReceipts.map((r) => (
+                      <ReceiptListCard
+                        key={r.id}
+                        id={r.id}
+                        storeName={r.store_name}
+                        purchaseDate={r.purchase_date}
+                        totalAmount={r.total_amount}
+                        receiptItems={r.receipt_items}
+                        onPress={() => router.push(`/receipt/${r.id}`)}
+                      />
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            )}
+          </>
+        )}
+      </ScrollView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 24, paddingTop: 60 },
-  header: { marginBottom: 24 },
-  greeting: { fontSize: 28, fontFamily: 'Inter-Bold', color: colors.text },
-  subtitle: { fontSize: 15, fontFamily: 'Inter-Regular', color: colors.textSecondary, marginTop: 4 },
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  statCard: {
-    flex: 1,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    gap: 6,
-  },
-  statNumber: { fontSize: 24, fontFamily: 'Inter-Bold' },
-  statLabel: { fontSize: 12, fontFamily: 'Inter-Medium', color: colors.textSecondary },
-  scanButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 32,
-  },
-  scanButtonText: { color: colors.textInverse, fontSize: 16, fontFamily: 'Inter-SemiBold' },
-  section: { marginBottom: 24 },
-  sectionTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: colors.text, marginBottom: 12 },
-  warningCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: colors.warningLight,
-  },
-  warningIcon: { marginRight: 12 },
-  warningContent: { flex: 1 },
-  warningName: { fontSize: 15, fontFamily: 'Inter-Medium', color: colors.text },
-  warningStore: { fontSize: 13, fontFamily: 'Inter-Regular', color: colors.textSecondary, marginTop: 2 },
-  warningDays: { fontSize: 14, fontFamily: 'Inter-SemiBold', color: colors.warning },
-  emptyState: { alignItems: 'center', paddingVertical: 48, gap: 12 },
-  emptyTitle: { fontSize: 18, fontFamily: 'Inter-SemiBold', color: colors.text },
-  emptyText: { fontSize: 14, fontFamily: 'Inter-Regular', color: colors.textSecondary, textAlign: 'center' },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingBottom: 100 },
+  loader: { marginVertical: 40 },
+  scanCta: { marginBottom: 28 },
+  section: { marginBottom: 8 },
 });

@@ -1,20 +1,32 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/lib/colors';
-import { ArrowLeft } from 'lucide-react-native';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthInput } from '@/components/auth/AuthInput';
+import { AuthPrimaryButton } from '@/components/auth/AuthPrimaryButton';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { AuthDivider } from '@/components/auth/AuthDivider';
+import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner';
 
 export default function RegisterScreen() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const canSubmit =
+    email.trim().length > 0 &&
+    password.length >= 6 &&
+    password === confirmPassword;
 
   const handleRegister = async () => {
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setError('Popunite sva polja');
       return;
     }
@@ -28,135 +40,100 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     setError('');
-    const { error: err } = await signUp(email, password);
+    const { error: err } = await signUp(email.trim(), password);
     if (err) {
       setError(err);
     } else {
+      if (Platform.OS !== 'web') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       router.replace('/(tabs)');
     }
     setLoading(false);
   };
 
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    setError('');
+    const { error: err } = await signInWithGoogle();
+    if (err) setError(err);
+    setGoogleLoading(false);
+  };
+
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.content}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={colors.text} />
-        </TouchableOpacity>
+    <AuthShell
+      cardTitle="Kreirajte nalog"
+      cardSubtitle="Besplatno čuvajte račune i garancije"
+      showBack
+    >
+      <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} label="Registruj se sa Google" />
 
-        <View style={styles.header}>
-          <Text style={styles.title}>Kreirajte nalog</Text>
-          <Text style={styles.subtitle}>Sačuvajte sve račune na jednom mestu</Text>
-        </View>
+      <AuthDivider />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+      <AuthErrorBanner message={error} />
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email adresa"
-            placeholderTextColor={colors.textMuted}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Lozinka"
-            placeholderTextColor={colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Potvrdite lozinku"
-            placeholderTextColor={colors.textMuted}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleRegister}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>{loading ? 'Registracija...' : 'Registruj se'}</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.form}>
+        <AuthInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          textContentType="emailAddress"
+          placeholder="vas@email.com"
+        />
+        <AuthInput
+          label="Lozinka"
+          value={password}
+          onChangeText={setPassword}
+          secureToggle
+          autoComplete="new-password"
+          textContentType="newPassword"
+          placeholder="Min. 6 karaktera"
+        />
+        <AuthInput
+          label="Potvrdite lozinku"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          secureToggle
+          autoComplete="new-password"
+          textContentType="newPassword"
+          placeholder="Ponovite lozinku"
+        />
+
+        <AuthPrimaryButton
+          title="Registruj se"
+          onPress={handleRegister}
+          loading={loading}
+          disabled={!canSubmit}
+        />
       </View>
-    </KeyboardAvoidingView>
+
+      <TouchableOpacity onPress={() => router.back()} style={styles.linkRow}>
+        <Text style={styles.linkMuted}>Već imate nalog? </Text>
+        <Text style={styles.link}>Prijavite se</Text>
+      </TouchableOpacity>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    flex: 1,
+  form: { gap: 14 },
+  linkRow: {
+    flexDirection: 'row',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    marginTop: 24,
+    paddingBottom: 8,
   },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 24,
-    padding: 8,
-  },
-  header: {
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: 'Inter-Bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
+  linkMuted: {
+    fontSize: 14,
+    fontFamily: 'PlusJakartaSans-Regular',
     color: colors.textSecondary,
   },
-  form: {
-    gap: 16,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  error: {
-    color: colors.error,
+  link: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 16,
-    backgroundColor: colors.errorLight,
-    padding: 12,
-    borderRadius: 8,
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    color: colors.accentGreen,
   },
 });

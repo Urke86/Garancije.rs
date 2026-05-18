@@ -1,8 +1,15 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/lib/colors';
+import { fontFamily } from '@/lib/typography';
 import { router } from 'expo-router';
-import { LogOut, Shield, Mail } from 'lucide-react-native';
+import { LogOut, Mail } from 'lucide-react-native';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { Card } from '@/components/ui/Card';
+import { BrandWordmark } from '@/components/BrandWordmark';
+import { getUserInitials, getGreetingName } from '@/lib/greeting';
+import { DigitalReceiptFeature } from '@/components/ui/DigitalReceiptFeature';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -12,71 +19,129 @@ export default function ProfileScreen() {
     router.replace('/(auth)');
   };
 
+  const displayName = getGreetingName(user) || 'Korisnik';
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Profil</Text>
-      </View>
+    <AppScreen>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <ScreenHeader title="Profil" subtitle="Podešavanja naloga" />
 
-      <View style={styles.card}>
-        <View style={styles.avatar}>
-          <Shield size={28} color={colors.primary} />
-        </View>
-        <View style={styles.userInfo}>
-          <View style={styles.emailRow}>
-            <Mail size={16} color={colors.textSecondary} />
-            <Text style={styles.email}>{user?.email}</Text>
+        <Card style={styles.profileCard}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{getUserInitials(user)}</Text>
           </View>
-          <Text style={styles.memberSince}>
-            Član od {new Date(user?.created_at || '').toLocaleDateString('sr-RS', { month: 'long', year: 'numeric' })}
-          </Text>
-        </View>
-      </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.displayName}>{displayName}</Text>
+            <View style={styles.emailRow}>
+              <Mail size={16} color={colors.textMuted} />
+              <Text style={styles.email} numberOfLines={1}>
+                {user?.email}
+              </Text>
+            </View>
+            <Text style={styles.memberSince}>
+              Član od{' '}
+              {new Date(user?.created_at || '').toLocaleDateString('sr-RS', {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </Text>
+          </View>
+        </Card>
 
-      <View style={styles.section}>
         <Text style={styles.sectionTitle}>O aplikaciji</Text>
-        <View style={styles.infoCard}>
+        <Card style={styles.aboutCard}>
+          <BrandWordmark size="md" style={styles.wordmark} />
           <Text style={styles.infoText}>
-            Garancija vam pomaže da digitalizujete fiskalne račune, pratite garancije i nikad ne propustite rok za reklamaciju.
+            Garancije.rs vam pomaže da digitalizujete fiskalne račune, pratite garancije i nikad
+            ne propustite rok za reklamaciju.
           </Text>
-        </View>
-      </View>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <LogOut size={20} color={colors.error} />
-        <Text style={styles.signOutText}>Odjavi se</Text>
-      </TouchableOpacity>
-    </View>
+          <DigitalReceiptFeature />
+        </Card>
+
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.85}>
+          <LogOut size={20} color={colors.error} />
+          <Text style={styles.signOutText}>Odjavi se</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background, padding: 24, paddingTop: 60 },
-  header: { marginBottom: 24 },
-  title: { fontSize: 24, fontFamily: 'Inter-Bold', color: colors.text },
-  card: {
-    backgroundColor: colors.surface, borderRadius: 16, padding: 20,
-    flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border,
-    marginBottom: 32,
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingBottom: 100 },
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 28,
   },
   avatar: {
-    width: 56, height: 56, borderRadius: 16, backgroundColor: colors.primaryLight + '20',
-    alignItems: 'center', justifyContent: 'center', marginRight: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  avatarText: {
+    fontSize: 18,
+    fontFamily: fontFamily.bold,
+    color: colors.primary,
   },
   userInfo: { flex: 1 },
+  displayName: {
+    fontSize: 17,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+    marginBottom: 6,
+  },
   emailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  email: { fontSize: 15, fontFamily: 'Inter-Medium', color: colors.text },
-  memberSince: { fontSize: 13, fontFamily: 'Inter-Regular', color: colors.textSecondary, marginTop: 4 },
-  section: { marginBottom: 32 },
-  sectionTitle: { fontSize: 16, fontFamily: 'Inter-SemiBold', color: colors.text, marginBottom: 12 },
-  infoCard: {
-    backgroundColor: colors.surface, borderRadius: 12, padding: 16,
-    borderWidth: 1, borderColor: colors.border,
+  email: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textSecondary,
   },
-  infoText: { fontSize: 14, fontFamily: 'Inter-Regular', color: colors.textSecondary, lineHeight: 22 },
+  memberSince: {
+    fontSize: 13,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    marginTop: 6,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+    marginBottom: 12,
+  },
+  aboutCard: { marginBottom: 28 },
+  wordmark: { marginBottom: 12 },
+  infoText: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    lineHeight: 22,
+  },
   signOutButton: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: colors.errorLight, borderRadius: 12, paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.35)',
+    backgroundColor: colors.surface,
   },
-  signOutText: { fontSize: 15, fontFamily: 'Inter-SemiBold', color: colors.error },
+  signOutText: {
+    fontSize: 15,
+    fontFamily: fontFamily.semibold,
+    color: colors.error,
+  },
 });

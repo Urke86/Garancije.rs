@@ -1,151 +1,148 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/lib/colors';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { AuthInput } from '@/components/auth/AuthInput';
+import { AuthPrimaryButton } from '@/components/auth/AuthPrimaryButton';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { AuthDivider } from '@/components/auth/AuthDivider';
+import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner';
 
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithGoogle, resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const canSubmit = email.trim().length > 0 && password.length >= 6;
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      setError('Unesite email i lozinku');
+    if (!canSubmit) {
+      setError('Unesite email i lozinku (min. 6 karaktera)');
       return;
     }
     setLoading(true);
     setError('');
-    const { error: err } = await signIn(email, password);
+    const { error: err } = await signIn(email.trim(), password);
     if (err) {
       setError(err);
     } else {
+      if (Platform.OS !== 'web') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       router.replace('/(tabs)');
     }
     setLoading(false);
   };
 
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    setError('');
+    const { error: err } = await signInWithGoogle();
+    if (err) setError(err);
+    setGoogleLoading(false);
+  };
+
+  const handleForgotPassword = () => {
+    if (!email.trim()) {
+      Alert.alert(
+        'Reset lozinke',
+        'Unesite email adresu u polje iznad, pa ponovo dodirnite „Zaboravili ste lozinku?“',
+      );
+      return;
+    }
+    Alert.alert('Reset lozinke', `Poslati link na ${email.trim()}?`, [
+      { text: 'Otkaži', style: 'cancel' },
+      {
+        text: 'Pošalji',
+        onPress: async () => {
+          const { error: err } = await resetPassword(email);
+          if (err) {
+            Alert.alert('Greška', err);
+          } else {
+            Alert.alert('Poslato', 'Proverite email za link za reset lozinke.');
+          }
+        },
+      },
+    ]);
+  };
+
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Image
-            source={require('@/assets/images/Garancije.rs_-_Logo.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
+    <AuthShell cardTitle="Dobrodošli nazad" cardSubtitle="Prijavite se na svoj nalog">
+      <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+      <AuthDivider />
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email adresa"
-            placeholderTextColor={colors.textMuted}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Lozinka"
-            placeholderTextColor={colors.textMuted}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            <Text style={styles.buttonText}>{loading ? 'Prijava...' : 'Prijavi se'}</Text>
-          </TouchableOpacity>
-        </View>
+      <AuthErrorBanner message={error} />
 
-        <TouchableOpacity onPress={() => router.push('/(auth)/register')} style={styles.linkContainer}>
-          <Text style={styles.linkText}>Nemate nalog? </Text>
-          <Text style={styles.link}>Registrujte se</Text>
+      <View style={styles.form}>
+        <AuthInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          autoComplete="email"
+          textContentType="emailAddress"
+          placeholder="vas@email.com"
+        />
+        <AuthInput
+          label="Lozinka"
+          value={password}
+          onChangeText={setPassword}
+          secureToggle
+          autoComplete="password"
+          textContentType="password"
+          placeholder="••••••••"
+        />
+
+        <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotWrap}>
+          <Text style={styles.forgot}>Zaboravili ste lozinku?</Text>
         </TouchableOpacity>
+
+        <AuthPrimaryButton
+          title="Prijavi se"
+          onPress={handleLogin}
+          loading={loading}
+          disabled={!canSubmit}
+        />
       </View>
-    </KeyboardAvoidingView>
+
+      <TouchableOpacity onPress={() => router.push('/(auth)/register')} style={styles.linkRow}>
+        <Text style={styles.linkMuted}>Nemate nalog? </Text>
+        <Text style={styles.link}>Registrujte se</Text>
+      </TouchableOpacity>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  form: { gap: 14 },
+  forgotWrap: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 4 },
+  forgot: {
+    fontSize: 13,
+    fontFamily: 'PlusJakartaSans-Medium',
+    color: colors.accent,
   },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logo: {
-    width: 280,
-    height: 140,
-  },
-  form: {
-    gap: 16,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: colors.text,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: colors.textInverse,
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-  },
-  error: {
-    color: colors.error,
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    textAlign: 'center',
-    marginBottom: 16,
-    backgroundColor: colors.errorLight,
-    padding: 12,
-    borderRadius: 8,
-  },
-  linkContainer: {
+  linkRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 24,
+    paddingBottom: 8,
   },
-  linkText: {
-    color: colors.textSecondary,
+  linkMuted: {
     fontSize: 14,
-    fontFamily: 'Inter-Regular',
+    fontFamily: 'PlusJakartaSans-Regular',
+    color: colors.textSecondary,
   },
   link: {
-    color: colors.primary,
     fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
+    fontFamily: 'PlusJakartaSans-SemiBold',
+    color: colors.accentGreen,
   },
 });
