@@ -4,16 +4,22 @@ import { Camera } from 'lucide-react-native';
 import { colors } from '@/lib/colors';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 
-export function ScanTabButton({ onPress, accessibilityState }: BottomTabBarButtonProps) {
+interface Props extends BottomTabBarButtonProps {
+  bottomInset?: number;
+}
+
+export function ScanTabButton({ onPress, accessibilityState, bottomInset = 0 }: Props) {
   const focused = accessibilityState?.selected;
+  const lift = bottomInset > 0 ? -20 : -18;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.9}
-      style={styles.wrap}
+      style={[styles.wrap, { top: lift }]}
       accessibilityRole="button"
       accessibilityState={accessibilityState}
+      accessibilityLabel="Skeniraj račun"
     >
       <LinearGradient
         colors={[colors.primary, colors.accent]}
@@ -29,7 +35,6 @@ export function ScanTabButton({ onPress, accessibilityState }: BottomTabBarButto
 
 const styles = StyleSheet.create({
   wrap: {
-    top: -18,
     justifyContent: 'center',
     alignItems: 'center',
   },

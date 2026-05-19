@@ -1,18 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import {
-  Receipt,
-  ShieldCheck,
-  TriangleAlert as AlertTriangle,
-  Circle as XCircle,
-} from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { Receipt, ChevronRight } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
-import { getWarrantyStatus, getDaysUntilExpiry } from '@/lib/warranty';
+import { formatSerbianDate } from '@/lib/warranty';
 import { Card } from './Card';
+import { useReceiptImageUri } from '@/hooks/useReceiptImageUri';
+import { ProductWarrantyCard } from './ProductWarrantyCard';
 
 export interface ReceiptItemPreview {
   id: string;
   name: string;
+  category?: string;
+  price?: number;
   warranty_expires_at?: string | null;
 }
 
@@ -21,134 +21,186 @@ export interface ReceiptListCardProps {
   storeName: string;
   purchaseDate: string;
   totalAmount: number;
+  imageUrl?: string | null;
   receiptItems?: ReceiptItemPreview[];
-  onPress: () => void;
-}
-
-function StatusIcon({ status }: { status: string }) {
-  if (status === 'expiring') return <AlertTriangle size={16} color={colors.warning} />;
-  if (status === 'expired') return <XCircle size={16} color={colors.error} />;
-  return <ShieldCheck size={16} color={colors.success} />;
+  onPress?: () => void;
 }
 
 export function ReceiptListCard({
+  id,
   storeName,
   purchaseDate,
   totalAmount,
+  imageUrl,
   receiptItems,
   onPress,
 }: ReceiptListCardProps) {
   const items = receiptItems ?? [];
+  const { uri: thumbUri, loading: thumbLoading } = useReceiptImageUri(imageUrl);
+
+  const openReceipt = () => {
+    if (onPress) {
+      onPress();
+      return;
+    }
+    const path =
+      items.length === 0
+        ? `/receipt/${id}?edit=1`
+        : `/receipt/${id}`;
+    router.push(path as `/receipt/${string}`);
+  };
 
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
-      <Card style={styles.card}>
-        <View style={styles.header}>
-          <View style={styles.icon}>
-            <Receipt size={20} color={colors.primary} />
-          </View>
-          <View style={styles.info}>
-            <Text style={styles.storeName} numberOfLines={1}>
-              {storeName || 'Nepoznata prodavnica'}
-            </Text>
-            <Text style={styles.date}>
-              {new Date(purchaseDate).toLocaleDateString('sr-RS')}
-            </Text>
-          </View>
-          <Text style={styles.amount}>
+    <Card style={styles.card} padded={false}>
+      <TouchableOpacity onPress={openReceipt} activeOpacity={0.85} style={styles.merchantRow}>
+        <View style={styles.thumbWrap}>
+          {thumbLoading ? (
+            <ActivityIndicator size="small" color={colors.primary} />
+          ) : thumbUri ? (
+            <Image source={{ uri: thumbUri }} style={styles.thumb} resizeMode="cover" />
+          ) : (
+            <Receipt size={22} color={colors.primary} />
+          )}
+        </View>
+        <View style={styles.merchantInfo}>
+          <Text style={styles.merchantLabel}>Prodavnica</Text>
+          <Text style={styles.merchantName} numberOfLines={1}>
+            {storeName || 'Nepoznata prodavnica'}
+          </Text>
+          <Text style={styles.merchantMeta}>
+            {items.length} {items.length === 1 ? 'proizvod' : 'proizvoda'} · ukupno{' '}
             {Number(totalAmount).toLocaleString('sr-RS')} RSD
           </Text>
         </View>
-        {items.length > 0 ? (
-          <View style={styles.items}>
-            {items.slice(0, 3).map((ri) => {
-              const status = ri.warranty_expires_at
-                ? getWarrantyStatus(ri.warranty_expires_at)
-                : 'active';
-              const days = ri.warranty_expires_at
-                ? getDaysUntilExpiry(ri.warranty_expires_at)
-                : 0;
-              return (
-                <View key={ri.id} style={styles.itemRow}>
-                  <StatusIcon status={status} />
-                  <Text style={styles.itemName} numberOfLines={1}>
-                    {ri.name}
-                  </Text>
-                  {ri.warranty_expires_at ? (
-                    <Text
-                      style={[
-                        styles.itemExpiry,
-                        status === 'expired' && { color: colors.error },
-                      ]}
-                    >
-                      {days > 0 ? `${days} dana` : 'Istekla'}
-                    </Text>
-                  ) : null}
-                </View>
-              );
-            })}
-            {items.length > 3 ? (
-              <Text style={styles.more}>+{items.length - 3} stavki</Text>
-            ) : null}
+        <ChevronRight size={20} color={colors.textMuted} />
+      </TouchableOpacity>
+
+      <View style={styles.divider} />
+
+      {items.length > 0 ? (
+        <View style={styles.items}>
+          {items.map((ri) => (
+            <ProductWarrantyCard
+              key={ri.id}
+              name={ri.name}
+              purchaseDate={purchaseDate}
+              category={ri.category}
+              price={ri.price}
+              warrantyExpiresAt={ri.warranty_expires_at}
+              storeName={storeName}
+              onPress={() => router.push(`/receipt/item/${ri.id}`)}
+            />
+          ))}
+        </View>
+      ) : (
+        <TouchableOpacity onPress={openReceipt} activeOpacity={0.85}>
+          <View style={styles.fallback}>
+            <Text style={styles.fallbackTitle}>{storeName || 'Račun bez stavki'}</Text>
+            <View style={styles.fallbackRow}>
+              <Text style={styles.fallbackLabel}>Datum kupovine proizvoda</Text>
+              <Text style={styles.fallbackValue}>{formatSerbianDate(purchaseDate)}</Text>
+            </View>
+            <Text style={styles.fallbackHint}>
+              Nema unetih proizvoda. Dodirnite da uredite račun i dopunite stavke.
+            </Text>
           </View>
-        ) : null}
-      </Card>
-    </TouchableOpacity>
+        </TouchableOpacity>
+      )}
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { marginBottom: 12 },
-  header: { flexDirection: 'row', alignItems: 'center' },
-  icon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
+  card: {
+    marginBottom: 16,
+    padding: 0,
+    overflow: 'hidden',
+  },
+  merchantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    gap: 12,
+  },
+  thumbWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
     backgroundColor: colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    overflow: 'hidden',
   },
-  info: { flex: 1 },
-  storeName: {
-    fontSize: 15,
+  thumb: {
+    width: 52,
+    height: 52,
+  },
+  merchantInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  merchantLabel: {
+    fontSize: 11,
     fontFamily: fontFamily.semibold,
-    color: colors.text,
-  },
-  date: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
     color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  merchantName: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
     marginTop: 2,
   },
-  amount: {
-    fontSize: 15,
-    fontFamily: fontFamily.semibold,
-    color: colors.text,
+  merchantMeta: {
+    fontSize: 12,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    marginTop: 4,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.borderLight,
+    marginHorizontal: 16,
   },
   items: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderLight,
-    gap: 8,
+    padding: 12,
+    paddingTop: 8,
+    gap: 0,
   },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  itemName: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
+  fallback: {
+    padding: 16,
+    gap: 10,
   },
-  itemExpiry: {
+  fallbackTitle: {
+    fontSize: 17,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
+  },
+  fallbackRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  fallbackLabel: {
+    width: '46%',
     fontSize: 12,
     fontFamily: fontFamily.medium,
     color: colors.textMuted,
+    lineHeight: 17,
   },
-  more: {
+  fallbackValue: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+    textAlign: 'right',
+    lineHeight: 20,
+  },
+  fallbackHint: {
     fontSize: 13,
-    fontFamily: fontFamily.medium,
-    color: colors.textMuted,
-    marginTop: 4,
+    fontFamily: fontFamily.regular,
+    color: colors.accent,
+    lineHeight: 18,
   },
 });

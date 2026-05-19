@@ -33,8 +33,11 @@ yarn-error.*
 
 # supabase cli
 supabase/.temp/
+supabase/cron/*.deployed.sql
 
 # credentials (never commit)
+*credentials/
+*firebase-adminsdk*.json
 *Github*.txt
 Šifra*.txt
 

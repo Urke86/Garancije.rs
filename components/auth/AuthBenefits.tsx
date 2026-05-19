@@ -24,21 +24,34 @@ export function AuthBenefits() {
 }
 
 const styles = StyleSheet.create({
-  list: { gap: 10, marginTop: 20 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  list: {
+    gap: 10,
+    marginTop: 20,
+    alignSelf: 'stretch',
+    width: '100%',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+  },
   iconWrap: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   text: {
     flex: 1,
+    minWidth: 0,
     fontSize: 14,
     fontFamily: 'PlusJakartaSans-Medium',
-    color: colors.textSecondary,
+    color: colors.text,
     lineHeight: 20,
   },
 });

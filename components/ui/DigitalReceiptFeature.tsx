@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Image, useWindowDimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldCheck } from 'lucide-react-native';
 import { colors } from '@/lib/colors';
@@ -7,21 +7,33 @@ import { fadedReceiptIllustration } from '@/lib/branding';
 
 const WIDE_LAYOUT = 520;
 
-export function DigitalReceiptFeature() {
+interface Props {
+  /** Uklopljen u Card — bez duplog okvira i senke. */
+  embedded?: boolean;
+}
+
+export function DigitalReceiptFeature({ embedded = false }: Props) {
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_LAYOUT;
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, embedded && styles.wrapEmbedded]}>
       <LinearGradient
-        colors={['rgba(0, 194, 203, 0.1)', 'rgba(126, 217, 87, 0.08)', colors.surface]}
+        colors={
+          embedded
+            ? ['rgba(0, 194, 203, 0.07)', 'rgba(126, 217, 87, 0.05)', 'rgba(247, 250, 252, 0.4)']
+            : ['rgba(0, 194, 203, 0.1)', 'rgba(126, 217, 87, 0.08)', colors.surface]
+        }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-      <View style={[styles.row, isWide && styles.rowWide]}>
+
+      {embedded ? <View style={styles.topDivider} /> : null}
+
+      <View style={[styles.row, isWide && styles.rowWide, embedded && styles.rowEmbedded]}>
         <View style={[styles.visual, isWide && styles.visualWide]}>
-          <View style={styles.imageFrame}>
+          <View style={styles.imageGlow}>
             <Image
               source={fadedReceiptIllustration}
               style={styles.image}
@@ -38,8 +50,8 @@ export function DigitalReceiptFeature() {
           </View>
           <Text style={styles.title}>Zašto digitalna kopija?</Text>
           <Text style={styles.body}>
-            Termalni papir bledi, a dokaz o kupovini nestaje u fioci. Kod nas sken ostaje
-            čitljiv i spreman za garanciju — godinama.
+            Termalni papir bledi, a dokaz o kupovini nestaje u fioci. Kod nas sken ostaje čitljiv
+            i spreman za garanciju — godinama.
           </Text>
           <View style={styles.highlights}>
             <Highlight label="Izgled računa sačuvan" />
@@ -66,21 +78,29 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.22)',
-    ...Platform.select({
-      web: { boxShadow: '0 4px 16px rgba(6, 43, 95, 0.06)' } as object,
-      default: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        elevation: 2,
-      },
-    }),
+    borderColor: 'rgba(0, 184, 217, 0.18)',
+  },
+  wrapEmbedded: {
+    marginTop: 0,
+    marginHorizontal: -16,
+    marginBottom: -16,
+    borderRadius: 0,
+    borderWidth: 0,
+    borderBottomLeftRadius: 15,
+    borderBottomRightRadius: 15,
+  },
+  topDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginHorizontal: 16,
   },
   row: {
     padding: 16,
     gap: 16,
+  },
+  rowEmbedded: {
+    paddingTop: 18,
+    paddingBottom: 18,
   },
   rowWide: {
     flexDirection: 'row',
@@ -95,17 +115,13 @@ const styles = StyleSheet.create({
     flex: 0.38,
     maxWidth: 200,
   },
-  imageFrame: {
+  imageGlow: {
     width: '100%',
-    maxWidth: 220,
-    aspectRatio: 1.15,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    maxWidth: 200,
+    aspectRatio: 1.12,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 4,
   },
   image: {
     width: '100%',
@@ -124,12 +140,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.2)',
   },
   badgeText: {
     fontSize: 11,

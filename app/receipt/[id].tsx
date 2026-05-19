@@ -1,13 +1,32 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { colors } from '@/lib/colors';
-import { getDaysUntilExpiry, getWarrantyStatus, CATEGORIES } from '@/lib/warranty';
-import { ArrowLeft, ShieldCheck, TriangleAlert as AlertTriangle, Circle as XCircle, FileText, Trash2 } from 'lucide-react-native';
+import { fontFamily } from '@/lib/typography';
+import { formatSerbianDate } from '@/lib/warranty';
+import { ArrowLeft, Trash2, Pencil, X } from 'lucide-react-native';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { Card } from '@/components/ui/Card';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { ProductWarrantyCard } from '@/components/ui/ProductWarrantyCard';
+import { ReceiptPhotoHero } from '@/components/receipt/ReceiptPhotoHero';
+import { ReceiptEditForm, type ReceiptFormState } from '@/components/receipt/ReceiptEditForm';
+import {
+  updateReceipt,
+  type ReceiptItemInput,
+} from '@/lib/receipt-persistence';
 
-interface Receipt {
+interface ReceiptRecord {
   id: string;
   store_name: string;
   purchase_date: string;
@@ -15,185 +34,378 @@ interface Receipt {
   pib: string;
   receipt_number: string;
   image_url: string;
+  raw_ocr_text: string;
   receipt_items: {
     id: string;
     name: string;
     category: string;
     price: number;
     warranty_months: number;
-    warranty_expires_at: string;
+    warranty_expires_at: string | null;
   }[];
 }
 
 export default function ReceiptDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const { user } = useAuth();
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
-  const [showImage, setShowImage] = useState(false);
+  const [receipt, setReceipt] = useState<ReceiptRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(edit === '1');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  const [form, setForm] = useState<ReceiptFormState>({
+    store_name: '',
+    purchase_date: '',
+    total_amount: '',
+    pib: '',
+    receipt_number: '',
+  });
+  const [items, setItems] = useState<ReceiptItemInput[]>([]);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [initialItemIds, setInitialItemIds] = useState<string[]>([]);
+
+  const loadReceipt = useCallback(async () => {
     if (!user || !id) return;
-    supabase
+    setLoading(true);
+    const { data } = await supabase
       .from('receipts')
       .select('*, receipt_items(*)')
       .eq('id', id)
       .eq('user_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setReceipt(data as Receipt);
+      .maybeSingle();
+
+    if (data) {
+      const r = data as ReceiptRecord;
+      setReceipt(r);
+      setForm({
+        store_name: r.store_name,
+        purchase_date: r.purchase_date,
+        total_amount: String(r.total_amount ?? ''),
+        pib: r.pib ?? '',
+        receipt_number: r.receipt_number ?? '',
       });
+      const mapped = (r.receipt_items ?? []).map((i) => ({
+        id: i.id,
+        name: i.name,
+        category: i.category,
+        price: String(i.price ?? ''),
+        warranty_months: String(i.warranty_months ?? 24),
+      }));
+      setItems(mapped.length > 0 ? mapped : [{ name: '', category: 'other', price: '', warranty_months: '24' }]);
+      setInitialItemIds(mapped.map((i) => i.id!).filter(Boolean));
+      setRemovedIds([]);
+    }
+    setLoading(false);
   }, [id, user]);
 
-  const handleDelete = async () => {
-    if (!receipt) return;
-    await supabase.from('receipts').delete().eq('id', receipt.id);
-    router.replace('/(tabs)/timeline');
+  useEffect(() => {
+    loadReceipt();
+  }, [loadReceipt]);
+
+  useEffect(() => {
+    if (edit === '1') setEditing(true);
+  }, [edit]);
+
+  const primaryName = useMemo(
+    () => receipt?.receipt_items?.[0]?.name || receipt?.store_name || 'Račun',
+    [receipt],
+  );
+
+  const handleDelete = () => {
+    Alert.alert('Obriši račun', 'Ova akcija je nepovratna.', [
+      { text: 'Otkaži', style: 'cancel' },
+      {
+        text: 'Obriši',
+        style: 'destructive',
+        onPress: async () => {
+          if (!receipt) return;
+          await supabase.from('receipts').delete().eq('id', receipt.id);
+          router.replace('/(tabs)/timeline');
+        },
+      },
+    ]);
   };
 
-  const getCategoryLabel = (cat: string) => CATEGORIES.find((c) => c.id === cat)?.label || cat;
+  const handleSave = async () => {
+    if (!user || !receipt) return;
+    if (!form.store_name.trim()) {
+      setError('Unesite naziv prodavnice');
+      return;
+    }
+    setSaving(true);
+    setError('');
 
-  const StatusBadge = ({ expiryDate }: { expiryDate: string }) => {
-    const status = getWarrantyStatus(expiryDate);
-    const days = getDaysUntilExpiry(expiryDate);
-    const config = {
-      active: { bg: colors.successLight, color: colors.success, icon: ShieldCheck, label: `${days} dana` },
-      expiring: { bg: colors.warningLight, color: colors.warning, icon: AlertTriangle, label: `${days} dana` },
-      expired: { bg: colors.errorLight, color: colors.error, icon: XCircle, label: 'Istekla' },
-    }[status];
-    const Icon = config.icon;
-    return (
-      <View style={[styles.badge, { backgroundColor: config.bg }]}>
-        <Icon size={14} color={config.color} />
-        <Text style={[styles.badgeText, { color: config.color }]}>{config.label}</Text>
-      </View>
+    const { error: saveErr } = await updateReceipt(
+      user.id,
+      receipt.id,
+      {
+        ...form,
+        image_url: receipt.image_url,
+        raw_ocr_text: receipt.raw_ocr_text,
+      },
+      items,
+      removedIds,
     );
+
+    setSaving(false);
+    if (saveErr) {
+      setError(saveErr);
+      return;
+    }
+    setEditing(false);
+    await loadReceipt();
   };
 
-  if (!receipt) {
+  const handleItemsChange = (next: ReceiptItemInput[]) => {
+    const removed = initialItemIds.filter(
+      (itemId) => !next.some((i) => i.id === itemId),
+    );
+    setRemovedIds(removed);
+    setItems(next);
+  };
+
+  if (loading || !receipt) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.loadingText}>Učitavam...</Text>
-      </View>
+      <AppScreen>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </AppScreen>
     );
   }
 
+  const hasSavedItems = (receipt.receipt_items?.length ?? 0) > 0;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft size={24} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
-            <Trash2 size={20} color={colors.error} />
+    <AppScreen>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.topBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+            <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.storeCard}>
-        <Text style={styles.storeName}>{receipt.store_name}</Text>
-        <Text style={styles.date}>
-          {new Date(receipt.purchase_date).toLocaleDateString('sr-RS', { day: 'numeric', month: 'long', year: 'numeric' })}
-        </Text>
-        <Text style={styles.amount}>{Number(receipt.total_amount).toLocaleString('sr-RS')} RSD</Text>
-      </View>
-
-      {receipt.pib || receipt.receipt_number ? (
-        <View style={styles.metaCard}>
-          {receipt.pib ? (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>PIB</Text>
-              <Text style={styles.metaValue}>{receipt.pib}</Text>
-            </View>
-          ) : null}
-          {receipt.receipt_number ? (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>Broj računa</Text>
-              <Text style={styles.metaValue}>{receipt.receipt_number}</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      {receipt.image_url ? (
-        <TouchableOpacity style={styles.imageButton} onPress={() => setShowImage(!showImage)}>
-          <FileText size={18} color={colors.primary} />
-          <Text style={styles.imageButtonText}>{showImage ? 'Sakrij sliku računa' : 'Prikaži sliku računa'}</Text>
-        </TouchableOpacity>
-      ) : null}
-
-      {showImage && receipt.image_url ? (
-        <Image source={{ uri: receipt.image_url }} style={styles.receiptImage} resizeMode="contain" />
-      ) : null}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Proizvodi ({receipt.receipt_items?.length || 0})</Text>
-        {receipt.receipt_items?.map((item) => (
-          <View key={item.id} style={styles.itemCard}>
-            <View style={styles.itemHeader}>
-              <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemPrice}>{Number(item.price).toLocaleString('sr-RS')} RSD</Text>
-            </View>
-            <View style={styles.itemMeta}>
-              <View style={styles.categoryTag}>
-                <Text style={styles.categoryTagText}>{getCategoryLabel(item.category)}</Text>
-              </View>
-              {item.warranty_expires_at && <StatusBadge expiryDate={item.warranty_expires_at} />}
-            </View>
-            {item.warranty_expires_at && (
-              <Text style={styles.expiryDate}>
-                Garancija do: {new Date(item.warranty_expires_at).toLocaleDateString('sr-RS')}
-              </Text>
-            )}
+          <View style={styles.topBarCenter}>
+            <Text style={styles.screenTitle}>Detalji računa</Text>
+            <Text style={styles.screenSubtitle} numberOfLines={1}>
+              {receipt.store_name || 'Kupovina'}
+            </Text>
           </View>
-        ))}
-      </View>
-    </ScrollView>
+          <View style={styles.topBarActions}>
+            {!editing ? (
+              <TouchableOpacity onPress={() => setEditing(true)} style={styles.iconBtn}>
+                <Pencil size={20} color={colors.primary} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity onPress={() => { setEditing(false); loadReceipt(); }} style={styles.iconBtn}>
+                <X size={22} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
+              <Trash2 size={18} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ReceiptPhotoHero imageStored={receipt.image_url} productName={primaryName} />
+
+        {editing ? (
+          <>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <ReceiptEditForm
+              form={form}
+              items={items}
+              onChangeForm={(patch) => setForm((f) => ({ ...f, ...patch }))}
+              onChangeItems={handleItemsChange}
+            />
+            <PrimaryButton
+              title={saving ? 'Čuvam...' : 'Sačuvaj izmene'}
+              onPress={handleSave}
+              loading={saving}
+              style={styles.saveBtn}
+            />
+          </>
+        ) : (
+          <>
+            <Card style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Pregled kupovine</Text>
+              <SummaryRow label="Prodavnica" value={receipt.store_name || '—'} />
+              <SummaryRow label="Datum kupovine proizvoda" value={formatSerbianDate(receipt.purchase_date)} />
+              <SummaryRow label="Ukupan iznos računa" value={`${Number(receipt.total_amount).toLocaleString('sr-RS')} RSD`} muted />
+              {receipt.pib ? <SummaryRow label="PIB prodavnice" value={receipt.pib} muted /> : null}
+              {receipt.receipt_number ? (
+                <SummaryRow label="Broj fiskalnog računa" value={receipt.receipt_number} muted />
+              ) : null}
+            </Card>
+
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionTitle}>Proizvodi i garancije</Text>
+              {!hasSavedItems ? (
+                <TouchableOpacity onPress={() => setEditing(true)}>
+                  <Text style={styles.sectionAction}>Dopuni podatke</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {!hasSavedItems ? (
+              <Card style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>Nema unetih proizvoda</Text>
+                <Text style={styles.emptyBody}>
+                  Dodajte proizvod, trajanje garancije i ostale podatke kako biste pratili rok isteka.
+                </Text>
+                <PrimaryButton title="Uredi račun" onPress={() => setEditing(true)} style={styles.emptyBtn} />
+              </Card>
+            ) : (
+              receipt.receipt_items.map((item) => (
+                <ProductWarrantyCard
+                  key={item.id}
+                  name={item.name}
+                  purchaseDate={receipt.purchase_date}
+                  category={item.category}
+                  price={item.price}
+                  warrantyExpiresAt={item.warranty_expires_at}
+                  storeName={receipt.store_name}
+                  onPress={() => router.push(`/receipt/item/${item.id}`)}
+                />
+              ))
+            )}
+          </>
+        )}
+      </ScrollView>
+    </AppScreen>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  muted,
+}: {
+  label: string;
+  value: string;
+  muted?: boolean;
+}) {
+  return (
+    <View style={styles.summaryRow}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={[styles.summaryValue, muted && styles.summaryValueMuted]}>{value}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 24, paddingTop: 60, paddingBottom: 40 },
-  loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  loadingText: { fontSize: 16, fontFamily: 'PlusJakartaSans-Medium', color: colors.textSecondary },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  backButton: { padding: 4 },
-  headerActions: { flexDirection: 'row', gap: 12 },
-  deleteButton: { padding: 8, backgroundColor: colors.errorLight, borderRadius: 8 },
-  storeCard: {
-    backgroundColor: colors.surface, borderRadius: 16, padding: 20, marginBottom: 12,
-    borderWidth: 1, borderColor: colors.border,
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingBottom: 48 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 16,
+    gap: 8,
   },
-  storeName: { fontSize: 20, fontFamily: 'PlusJakartaSans-Bold', color: colors.text },
-  date: { fontSize: 14, fontFamily: 'PlusJakartaSans-Regular', color: colors.textSecondary, marginTop: 4 },
-  amount: { fontSize: 22, fontFamily: 'PlusJakartaSans-Bold', color: colors.primary, marginTop: 8 },
-  metaCard: {
-    backgroundColor: colors.surface, borderRadius: 12, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: colors.border,
+  topBarCenter: { flex: 1, minWidth: 0 },
+  topBarActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  iconBtn: { padding: 8 },
+  deleteBtn: {
+    padding: 8,
+    backgroundColor: colors.errorLight,
+    borderRadius: 10,
   },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  metaLabel: { fontSize: 13, fontFamily: 'PlusJakartaSans-Medium', color: colors.textSecondary },
-  metaValue: { fontSize: 13, fontFamily: 'PlusJakartaSans-Medium', color: colors.text },
-  imageButton: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12,
-    backgroundColor: colors.accentLight, borderRadius: 10, marginBottom: 16,
+  screenTitle: {
+    fontSize: 13,
+    fontFamily: fontFamily.semibold,
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
-  imageButtonText: { fontSize: 14, fontFamily: 'PlusJakartaSans-Medium', color: colors.primary },
-  receiptImage: { width: '100%', height: 400, borderRadius: 12, marginBottom: 16 },
-  section: { marginTop: 8 },
-  sectionTitle: { fontSize: 17, fontFamily: 'PlusJakartaSans-SemiBold', color: colors.text, marginBottom: 12 },
-  itemCard: {
-    backgroundColor: colors.surface, borderRadius: 12, padding: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: colors.border,
+  screenSubtitle: {
+    fontSize: 18,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
+    marginTop: 2,
   },
-  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  itemName: { fontSize: 15, fontFamily: 'PlusJakartaSans-Medium', color: colors.text, flex: 1 },
-  itemPrice: { fontSize: 14, fontFamily: 'PlusJakartaSans-SemiBold', color: colors.text },
-  itemMeta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
-  categoryTag: { backgroundColor: colors.surfaceAlt, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-  categoryTagText: { fontSize: 12, fontFamily: 'PlusJakartaSans-Medium', color: colors.textSecondary },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-  badgeText: { fontSize: 12, fontFamily: 'PlusJakartaSans-SemiBold' },
-  expiryDate: { fontSize: 12, fontFamily: 'PlusJakartaSans-Regular', color: colors.textMuted, marginTop: 8 },
+  summaryCard: { marginBottom: 20 },
+  summaryTitle: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
+    marginBottom: 12,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  summaryLabel: {
+    width: '46%',
+    fontSize: 12,
+    fontFamily: fontFamily.medium,
+    color: colors.textMuted,
+    lineHeight: 17,
+  },
+  summaryValue: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+    textAlign: 'right',
+    lineHeight: 20,
+  },
+  summaryValueMuted: {
+    fontFamily: fontFamily.regular,
+    color: colors.textSecondary,
+    fontSize: 13,
+  },
+  sectionHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
+  },
+  sectionAction: {
+    fontSize: 14,
+    fontFamily: fontFamily.semibold,
+    color: colors.accent,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    gap: 10,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
+  },
+  emptyBody: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: 12,
+  },
+  emptyBtn: { alignSelf: 'stretch', marginTop: 8 },
+  error: {
+    color: colors.error,
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    backgroundColor: colors.errorLight,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 12,
+  },
+  saveBtn: { marginTop: 8 },
 });

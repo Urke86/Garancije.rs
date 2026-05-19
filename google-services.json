@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "912156891100",
+    "project_id": "snizzy-a518c",
+    "storage_bucket": "snizzy-a518c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:912156891100:android:08ec8aead7fc18f086e119",
+        "android_client_info": {
+          "package_name": "rs.garancije.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvEZTSki_5aWVbfeI66l_swFFD_BKxC6E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

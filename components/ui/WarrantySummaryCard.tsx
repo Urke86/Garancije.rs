@@ -5,28 +5,47 @@ import { Card } from './Card';
 import { StatPill } from './StatPill';
 
 interface Props {
+  receiptCount: number;
   total: number;
   active: number;
   expiring: number;
   expired: number;
 }
 
-export function WarrantySummaryCard({ total, active, expiring, expired }: Props) {
-  const context =
-    total === 0
-      ? 'Skenirajte prvi račun da započnete praćenje garancija.'
+export function WarrantySummaryCard({
+  receiptCount,
+  total,
+  active,
+  expiring,
+  expired,
+}: Props) {
+  const showReceiptsOnly = receiptCount > 0 && total === 0;
+  const displayNumber = showReceiptsOnly ? receiptCount : total;
+
+  const context = showReceiptsOnly
+    ? 'Račun je sačuvan. Proverite stavke i datume garancije na detaljima računa.'
+    : receiptCount === 0
+      ? 'Dodajte prvi račun da započnete praćenje i čuvanje garancija.'
       : expiring > 0
         ? `${expiring} garancij${expiring === 1 ? 'a' : 'e'} uskoro ističe — proverite na vreme.`
         : expired > 0 && active === 0
           ? 'Sve aktivne garancije su istekle. Dodajte novi račun.'
           : 'Sve garancije su pod kontrolom.';
 
+  const bigLabel = showReceiptsOnly
+    ? receiptCount === 1
+      ? 'sačuvan račun'
+      : 'sačuvanih računa'
+    : total === 1
+      ? 'stavka pod garancijom'
+      : total > 1
+        ? 'stavki pod garancijom'
+        : 'nema sačuvanih garancija';
+
   return (
     <Card style={styles.card}>
-      <Text style={styles.bigNumber}>{total}</Text>
-      <Text style={styles.bigLabel}>
-        {total === 1 ? 'stavka pod garancijom' : total > 1 ? 'stavki pod garancijom' : 'nema sačuvanih garancija'}
-      </Text>
+      <Text style={styles.bigNumber}>{displayNumber}</Text>
+      <Text style={styles.bigLabel}>{bigLabel}</Text>
       <Text style={styles.context}>{context}</Text>
       {total > 0 ? (
         <View style={styles.pills}>

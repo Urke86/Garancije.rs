@@ -1,40 +1,53 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { TriangleAlert as AlertTriangle } from 'lucide-react-native';
+import { TriangleAlert as AlertTriangle, ChevronRight } from 'lucide-react-native';
 import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
-import { getDaysUntilExpiry } from '@/lib/warranty';
 import { Card } from './Card';
+import { WarrantyStatusBadge } from './WarrantyStatusBadge';
+import { WarrantyDetailBlock } from './WarrantyDetailBlock';
 
 interface Props {
   name: string;
+  purchaseDate: string;
   storeName?: string;
   warrantyExpiresAt: string;
   onPress: () => void;
 }
 
-const MAX_DAYS = 30;
-
-export function ExpiringItemCard({ name, storeName, warrantyExpiresAt, onPress }: Props) {
-  const days = getDaysUntilExpiry(warrantyExpiresAt);
-  const progress = Math.max(0, Math.min(1, days / MAX_DAYS));
-
+export function ExpiringItemCard({
+  name,
+  purchaseDate,
+  storeName,
+  warrantyExpiresAt,
+  onPress,
+}: Props) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
       <Card style={styles.card}>
-        <View style={styles.row}>
+        <View style={styles.titleRow}>
           <View style={styles.iconWrap}>
             <AlertTriangle size={18} color={colors.warning} />
           </View>
-          <View style={styles.content}>
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
+          <View style={styles.titleBlock}>
+            <Text style={styles.name} numberOfLines={2}>
+              {name}
+            </Text>
             {storeName ? (
-              <Text style={styles.store} numberOfLines={1}>{storeName}</Text>
+              <Text style={styles.store} numberOfLines={1}>
+                Prodavnica: {storeName}
+              </Text>
             ) : null}
           </View>
-          <Text style={styles.days}>{days} d.</Text>
+          <WarrantyStatusBadge warrantyExpiresAt={warrantyExpiresAt} size="sm" />
         </View>
-        <View style={styles.track}>
-          <View style={[styles.fill, { width: `${progress * 100}%` }]} />
+        <WarrantyDetailBlock
+          purchaseDate={purchaseDate}
+          warrantyExpiresAt={warrantyExpiresAt}
+          showCountdownParts={false}
+        />
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Prikaži sve detalje</Text>
+          <ChevronRight size={16} color={colors.accent} />
         </View>
       </Card>
     </TouchableOpacity>
@@ -44,12 +57,13 @@ export function ExpiringItemCard({ name, storeName, warrantyExpiresAt, onPress }
 const styles = StyleSheet.create({
   card: {
     marginBottom: 10,
-    borderColor: 'rgba(217, 119, 6, 0.25)',
+    borderColor: 'rgba(217, 119, 6, 0.28)',
+    gap: 12,
   },
-  row: {
+  titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    gap: 10,
   },
   iconWrap: {
     width: 36,
@@ -58,34 +72,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.warningLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
   },
-  content: { flex: 1 },
+  titleBlock: {
+    flex: 1,
+    minWidth: 0,
+  },
   name: {
-    fontSize: 15,
-    fontFamily: fontFamily.semibold,
+    fontSize: 16,
+    fontFamily: fontFamily.bold,
     color: colors.text,
+    lineHeight: 21,
   },
   store: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
-    marginTop: 2,
+    marginTop: 4,
   },
-  days: {
-    fontSize: 14,
-    fontFamily: fontFamily.bold,
-    color: colors.warning,
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingTop: 4,
   },
-  track: {
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.surfaceAlt,
-    overflow: 'hidden',
-  },
-  fill: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: colors.warning,
+  footerText: {
+    fontSize: 13,
+    fontFamily: fontFamily.semibold,
+    color: colors.accent,
   },
 });

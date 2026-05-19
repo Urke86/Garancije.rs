@@ -6,9 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/lib/colors';
 import { Hop as Home, Clock, Bell, User } from 'lucide-react-native';
 import { ScanTabButton } from '@/components/ui/ScanTabButton';
+import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { useReminderBadge } from '@/hooks/useReminderBadge';
 
 export default function TabLayout() {
   const { user, loading } = useAuth();
+  const { bottomInset, height, topPadding } = useTabBarLayout();
+  const { count: reminderBadge } = useReminderBadge();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -26,10 +30,11 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
           backgroundColor: colors.surface,
-          borderTopWidth: 0,
-          paddingTop: 6,
-          height: Platform.OS === 'ios' ? 88 : 72,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(6, 43, 95, 0.06)',
+          paddingTop: topPadding,
+          height,
+          paddingBottom: bottomInset,
           ...Platform.select({
             web: { boxShadow: '0 -4px 20px rgba(6, 43, 95, 0.08)' } as object,
             default: {
@@ -41,10 +46,14 @@ export default function TabLayout() {
             },
           }),
         },
+        tabBarItemStyle: {
+          paddingTop: 2,
+        },
         tabBarLabelStyle: {
           fontFamily: 'PlusJakartaSans-Medium',
           fontSize: 11,
           marginTop: 2,
+          marginBottom: Platform.OS === 'android' ? 2 : 0,
         },
       }}
     >
@@ -60,7 +69,7 @@ export default function TabLayout() {
         options={{
           title: 'Skeniraj',
           tabBarLabel: () => null,
-          tabBarButton: (props) => <ScanTabButton {...props} />,
+          tabBarButton: (props) => <ScanTabButton {...props} bottomInset={bottomInset} />,
         }}
       />
       <Tabs.Screen
@@ -75,6 +84,8 @@ export default function TabLayout() {
         options={{
           title: 'Podsetnici',
           tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
+          tabBarBadge: reminderBadge > 0 ? reminderBadge : undefined,
+          tabBarBadgeStyle: { backgroundColor: colors.accent, fontSize: 10 },
         }}
       />
       <Tabs.Screen

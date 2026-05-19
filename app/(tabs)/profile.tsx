@@ -10,9 +10,12 @@ import { Card } from '@/components/ui/Card';
 import { BrandWordmark } from '@/components/BrandWordmark';
 import { getUserInitials, getGreetingName } from '@/lib/greeting';
 import { DigitalReceiptFeature } from '@/components/ui/DigitalReceiptFeature';
+import { NotificationSettingsCard } from '@/components/ui/NotificationSettingsCard';
+import { useTabBarLayout } from '@/hooks/useTabBarLayout';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
+  const { scrollBottomPadding } = useTabBarLayout();
 
   const handleSignOut = async () => {
     await signOut();
@@ -25,10 +28,12 @@ export default function ProfileScreen() {
     <AppScreen>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader title="Profil" subtitle="Podešavanja naloga" />
+
+        <Text style={styles.sectionTitle}>Nalog</Text>
 
         <Card style={styles.profileCard}>
           <View style={styles.avatar}>
@@ -52,15 +57,18 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
+        <Text style={styles.sectionTitle}>Obaveštenja</Text>
+        <NotificationSettingsCard />
+
         <Text style={styles.sectionTitle}>O aplikaciji</Text>
-        <Card style={styles.aboutCard}>
+        <Card style={styles.aboutCard} clip>
           <BrandWordmark size="md" style={styles.wordmark} />
           <Text style={styles.infoText}>
             Garancije.rs vam pomaže da digitalizujete fiskalne račune, pratite garancije i nikad
             ne propustite rok za reklamaciju.
           </Text>
 
-          <DigitalReceiptFeature />
+          <DigitalReceiptFeature embedded />
         </Card>
 
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.85}>
@@ -74,7 +82,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 100 },
+  content: { paddingHorizontal: 20 },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -127,6 +135,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
     lineHeight: 22,
+    marginBottom: 4,
   },
   signOutButton: {
     flexDirection: 'row',

@@ -7,11 +7,13 @@ interface Props {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
+  /** Skraćuje sadržaj na zaobljene ivice (npr. ugradjeni feature blok). */
+  clip?: boolean;
 }
 
-export function Card({ children, style, padded = true }: Props) {
+export function Card({ children, style, padded = true, clip = false }: Props) {
   return (
-    <View style={[styles.card, padded && styles.padded, style]}>
+    <View style={[styles.card, clip && styles.clip, padded && styles.padded, style]}>
       {children}
     </View>
   );
@@ -24,6 +26,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     ...cardShadow,
+  },
+  clip: {
+    overflow: 'hidden',
   },
   padded: {
     padding: 16,

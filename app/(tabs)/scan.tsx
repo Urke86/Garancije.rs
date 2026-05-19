@@ -20,9 +20,11 @@ import { Camera, Image as ImageIcon, Scan } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
+import { useTabBarLayout } from '@/hooks/useTabBarLayout';
 
 export default function ScanScreen() {
   const { user } = useAuth();
+  const { scrollBottomPadding } = useTabBarLayout();
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -79,8 +81,6 @@ export default function ScanScreen() {
         return;
       }
 
-      const { data: urlData } = supabase.storage.from('receipt-images').getPublicUrl(fileName);
-
       const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/ocr-receipt`;
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -97,7 +97,7 @@ export default function ScanScreen() {
         router.push({
           pathname: '/receipt/edit',
           params: {
-            image_url: urlData.publicUrl,
+            image_url: fileName,
             ocr_data: JSON.stringify({
               store_name: '',
               purchase_date: '',
@@ -115,7 +115,7 @@ export default function ScanScreen() {
       router.push({
         pathname: '/receipt/edit',
         params: {
-          image_url: urlData.publicUrl,
+          image_url: fileName,
           ocr_data: JSON.stringify(ocrResult),
         },
       });
@@ -130,7 +130,7 @@ export default function ScanScreen() {
     <AppScreen>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
@@ -199,7 +199,7 @@ function decode(base64: string): Uint8Array {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 120 },
+  content: { paddingHorizontal: 20 },
   errorBanner: {
     backgroundColor: colors.errorLight,
     borderRadius: 12,

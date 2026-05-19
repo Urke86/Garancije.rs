@@ -5,6 +5,7 @@ export default function ReceiptLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="edit" />
       <Stack.Screen name="[id]" />
+      <Stack.Screen name="item/[id]" />
     </Stack>
   );
 }

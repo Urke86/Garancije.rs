@@ -12,12 +12,20 @@ const source = path.join(root, 'assets/images/Logo Garancije-providan.png');
 const outDir = path.join(root, 'assets/images');
 
 const SIZE = 1024;
-const LOGO_SCALE = 0.72;
+/** iOS / generic icon — logo fills most of the square */
+const ICON_LOGO_SCALE = 0.9;
+/** Android adaptive foreground — mask clips ~18% edges; scale up so launcher squircle looks full */
+const ADAPTIVE_LOGO_SCALE = 0.98;
 const BG = { r: 247, g: 250, b: 252, alpha: 1 };
 
-async function buildSquareIcon({ transparentBg }) {
-  const logoSize = Math.round(SIZE * LOGO_SCALE);
-  const logo = await sharp(source)
+async function loadTrimmedLogoBuffer() {
+  return sharp(source).trim().png().toBuffer();
+}
+
+async function buildSquareIcon({ transparentBg, logoScale }) {
+  const trimmed = await loadTrimmedLogoBuffer();
+  const logoSize = Math.round(SIZE * logoScale);
+  const logo = await sharp(trimmed)
     .resize(logoSize, logoSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toBuffer();
@@ -43,18 +51,20 @@ async function buildSquareIcon({ transparentBg }) {
     .png();
 }
 
-const icon = await buildSquareIcon({ transparentBg: false });
+const trimmedLogo = await loadTrimmedLogoBuffer();
+
+const icon = await buildSquareIcon({ transparentBg: false, logoScale: ICON_LOGO_SCALE });
 await icon.toFile(path.join(outDir, 'icon.png'));
 
-const adaptive = await buildSquareIcon({ transparentBg: true });
+const adaptive = await buildSquareIcon({ transparentBg: true, logoScale: ADAPTIVE_LOGO_SCALE });
 await adaptive.toFile(path.join(outDir, 'adaptive-icon.png'));
 
-await sharp(source)
+await sharp(trimmedLogo)
   .resize(192, 192, { fit: 'contain', background: BG })
   .png()
   .toFile(path.join(outDir, 'favicon.png'));
 
-await sharp(source)
+await sharp(trimmedLogo)
   .resize(400, 400, { fit: 'contain', background: BG })
   .png()
   .toFile(path.join(outDir, 'splash-icon.png'));
