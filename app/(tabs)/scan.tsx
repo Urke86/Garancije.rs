@@ -21,6 +21,7 @@ import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { emptyOcrResult, invokeReceiptOcr } from '@/lib/ocr-receipt';
 
 export default function ScanScreen() {
   const { user } = useAuth();
@@ -81,42 +82,15 @@ export default function ScanScreen() {
         return;
       }
 
-      const apiUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/ocr-receipt`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ image_base64: base64Data }),
-      });
-
-      const ocrResult = await response.json();
-
-      if (!response.ok) {
-        router.push({
-          pathname: '/receipt/edit',
-          params: {
-            image_url: fileName,
-            ocr_data: JSON.stringify({
-              store_name: '',
-              purchase_date: '',
-              total_amount: '',
-              items: [],
-              pib: '',
-              receipt_number: '',
-            }),
-          },
-        });
-        setLoading(false);
-        return;
-      }
+      const { data: ocrResult, error: ocrError } = await invokeReceiptOcr(base64Data);
+      const ocrData = ocrResult ?? emptyOcrResult();
 
       router.push({
         pathname: '/receipt/edit',
         params: {
           image_url: fileName,
-          ocr_data: JSON.stringify(ocrResult),
+          ocr_data: JSON.stringify(ocrData),
+          ...(ocrError ? { ocr_warning: ocrError } : {}),
         },
       });
     } catch (err: unknown) {
