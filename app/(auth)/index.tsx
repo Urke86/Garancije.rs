@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,9 @@ import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner';
 import { LegalLinks } from '@/components/ui/LegalLinks';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
+
+type ResetDialog = 'closed' | 'need_email' | 'confirm' | 'success' | 'error';
 
 export default function LoginScreen() {
   const { signIn, signInWithGoogle, resetPassword } = useAuth();
@@ -19,6 +22,9 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [resetDialog, setResetDialog] = useState<ResetDialog>('closed');
+  const [resetSending, setResetSending] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
 
   const canSubmit = email.trim().length > 0 && password.length >= 6;
 
@@ -51,29 +57,28 @@ export default function LoginScreen() {
 
   const handleForgotPassword = () => {
     if (!email.trim()) {
-      Alert.alert(
-        'Reset lozinke',
-        'Unesite email adresu u polje iznad, pa ponovo dodirnite „Zaboravili ste lozinku?“',
-      );
+      setResetDialog('need_email');
       return;
     }
-    Alert.alert('Reset lozinke', `Poslati link na ${email.trim()}?`, [
-      { text: 'Otkaži', style: 'cancel' },
-      {
-        text: 'Pošalji',
-        onPress: async () => {
-          const { error: err } = await resetPassword(email);
-          if (err) {
-            Alert.alert('Greška', err);
-          } else {
-            Alert.alert('Poslato', 'Proverite email za link za reset lozinke.');
-          }
-        },
-      },
-    ]);
+    setResetDialog('confirm');
+  };
+
+  const sendResetEmail = async () => {
+    setResetSending(true);
+    const { error: err } = await resetPassword(email);
+    setResetSending(false);
+
+    if (err) {
+      setResetMessage(err);
+      setResetDialog('error');
+      return;
+    }
+
+    setResetDialog('success');
   };
 
   return (
+    <>
     <AuthShell cardTitle="Dobrodošli nazad" cardSubtitle="Prijavite se na svoj nalog">
       <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} />
 
@@ -121,6 +126,48 @@ export default function LoginScreen() {
 
       <LegalLinks variant="consent" consentIntro="Korišćenjem aplikacije prihvatate" />
     </AuthShell>
+
+    <ConfirmModal
+      visible={resetDialog === 'need_email'}
+      title="Reset lozinke"
+      message="Unesite email adresu u polje iznad, pa ponovo dodirnite „Zaboravili ste lozinku?“"
+      confirmLabel="U redu"
+      alertOnly
+      onConfirm={() => setResetDialog('closed')}
+      onCancel={() => setResetDialog('closed')}
+    />
+
+    <ConfirmModal
+      visible={resetDialog === 'confirm'}
+      title="Reset lozinke"
+      message={`Poslati link za reset lozinke na ${email.trim()}?`}
+      confirmLabel="Pošalji"
+      cancelLabel="Otkaži"
+      loading={resetSending}
+      onConfirm={sendResetEmail}
+      onCancel={() => setResetDialog('closed')}
+    />
+
+    <ConfirmModal
+      visible={resetDialog === 'success'}
+      title="Poslato"
+      message="Proverite email za link za reset lozinke. Link vodi na ekran za unos nove lozinke."
+      confirmLabel="U redu"
+      alertOnly
+      onConfirm={() => setResetDialog('closed')}
+      onCancel={() => setResetDialog('closed')}
+    />
+
+    <ConfirmModal
+      visible={resetDialog === 'error'}
+      title="Greška"
+      message={resetMessage}
+      confirmLabel="U redu"
+      alertOnly
+      onConfirm={() => setResetDialog('closed')}
+      onCancel={() => setResetDialog('closed')}
+    />
+    </>
   );
 }
 

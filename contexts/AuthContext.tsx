@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { signInWithGoogle as googleSignIn } from '@/lib/auth/google';
 import { deleteAccount as performAccountDeletion } from '@/lib/account-deletion';
+import { getPasswordResetRedirectUri } from '@/lib/auth/password-reset';
 
 interface AuthContextType {
   user: User | null;
@@ -12,6 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<{ error: string | null }>;
 }
@@ -52,8 +54,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: process.env.EXPO_PUBLIC_PASSWORD_RESET_REDIRECT ?? undefined,
+      redirectTo: getPasswordResetRedirectUri(),
     });
+    return { error: error?.message ?? null };
+  };
+
+  const updatePassword = async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
     return { error: error?.message ?? null };
   };
 
@@ -79,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signIn,
         signInWithGoogle,
         resetPassword,
+        updatePassword,
         signOut,
         deleteAccount,
       }}
