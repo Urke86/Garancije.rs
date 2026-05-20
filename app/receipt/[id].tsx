@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +24,8 @@ import {
   updateReceipt,
   type ReceiptItemInput,
 } from '@/lib/receipt-persistence';
+import { getReceiptStoragePath } from '@/lib/receipt-image';
+import { ConfirmModal } from '@/components/ui/ConfirmModal';
 
 interface ReceiptRecord {
   id: string;
@@ -64,6 +65,9 @@ export default function ReceiptDetailScreen() {
   const [items, setItems] = useState<ReceiptItemInput[]>([]);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [initialItemIds, setInitialItemIds] = useState<string[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   const loadReceipt = useCallback(async () => {
     if (!user || !id) return;
@@ -112,19 +116,30 @@ export default function ReceiptDetailScreen() {
     [receipt],
   );
 
-  const handleDelete = () => {
-    Alert.alert('Obriši račun', 'Ova akcija je nepovratna.', [
-      { text: 'Otkaži', style: 'cancel' },
-      {
-        text: 'Obriši',
-        style: 'destructive',
-        onPress: async () => {
-          if (!receipt) return;
-          await supabase.from('receipts').delete().eq('id', receipt.id);
-          router.replace('/(tabs)/timeline');
-        },
-      },
-    ]);
+  const runDelete = async () => {
+    if (!receipt || !user) return;
+
+    setDeleting(true);
+    const imagePath = getReceiptStoragePath(receipt.image_url);
+    if (imagePath) {
+      await supabase.storage.from('receipt-images').remove([imagePath]);
+    }
+
+    const { error: deleteError } = await supabase
+      .from('receipts')
+      .delete()
+      .eq('id', receipt.id)
+      .eq('user_id', user.id);
+
+    setDeleting(false);
+
+    if (deleteError) {
+      setDeleteError(deleteError.message);
+      return;
+    }
+
+    setShowDeleteModal(false);
+    router.replace('/(tabs)/timeline');
   };
 
   const handleSave = async () => {
@@ -205,7 +220,12 @@ export default function ReceiptDetailScreen() {
                 <X size={22} color={colors.textMuted} />
               </TouchableOpacity>
             )}
-            <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
+            <TouchableOpacity
+              onPress={() => setShowDeleteModal(true)}
+              style={styles.deleteBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Obriši račun"
+            >
               <Trash2 size={18} color={colors.error} />
             </TouchableOpacity>
           </View>
@@ -276,6 +296,24 @@ export default function ReceiptDetailScreen() {
           </>
         )}
       </ScrollView>
+
+      <ConfirmModal
+        visible={showDeleteModal}
+        title="Obriši račun"
+        message={
+          deleteError
+            ? `Brisanje nije uspelo: ${deleteError}`
+            : 'Ova akcija je nepovratna. Račun, proizvodi i podsetnici biće obrisani.'
+        }
+        confirmLabel="Obriši"
+        destructive
+        loading={deleting}
+        onConfirm={runDelete}
+        onCancel={() => {
+          setShowDeleteModal(false);
+          setDeleteError('');
+        }}
+      />
     </AppScreen>
   );
 }
