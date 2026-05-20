@@ -70,7 +70,11 @@ export default function ReceiptDetailScreen() {
   const [deleteError, setDeleteError] = useState('');
 
   const loadReceipt = useCallback(async () => {
-    if (!user || !id) return;
+    if (!user || !id) {
+      setReceipt(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from('receipts')
@@ -99,6 +103,8 @@ export default function ReceiptDetailScreen() {
       setItems(mapped.length > 0 ? mapped : [{ name: '', category: 'other', price: '', warranty_months: '24' }]);
       setInitialItemIds(mapped.map((i) => i.id!).filter(Boolean));
       setRemovedIds([]);
+    } else {
+      setReceipt(null);
     }
     setLoading(false);
   }, [id, user]);
@@ -180,11 +186,26 @@ export default function ReceiptDetailScreen() {
     setItems(next);
   };
 
-  if (loading || !receipt) {
+  if (loading) {
     return (
       <AppScreen>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </AppScreen>
+    );
+  }
+
+  if (!receipt) {
+    return (
+      <AppScreen>
+        <View style={styles.centered}>
+          <Text style={styles.missing}>Račun nije pronađen.</Text>
+          <PrimaryButton
+            title="Nazad na kupovine"
+            onPress={() => router.replace('/(tabs)/timeline')}
+            style={styles.missingBtn}
+          />
         </View>
       </AppScreen>
     );
@@ -338,7 +359,14 @@ function SummaryRow({
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24 },
+  missing: {
+    fontSize: 16,
+    fontFamily: fontFamily.medium,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  missingBtn: { alignSelf: 'stretch', minWidth: 220 },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',

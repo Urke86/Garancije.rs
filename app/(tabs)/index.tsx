@@ -16,6 +16,7 @@ import { ExpiringItemCard } from '@/components/ui/ExpiringItemCard';
 import { ReceiptListCard } from '@/components/ui/ReceiptListCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { getSupabaseErrorMessage } from '@/lib/supabase-errors';
 
 interface WarrantyItem {
   id: string;
@@ -50,6 +51,7 @@ export default function HomeScreen() {
   const [stats, setStats] = useState({ total: 0, active: 0, expiring: 0, expired: 0 });
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -73,6 +75,14 @@ export default function HomeScreen() {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id),
     ]);
+
+    const err = getSupabaseErrorMessage(itemsRes.error, receiptsRes.error, countRes.error);
+    if (err) {
+      setLoadError(err);
+      setLoading(false);
+      return;
+    }
+    setLoadError(null);
 
     setReceiptCount(countRes.count ?? 0);
 
@@ -131,6 +141,16 @@ export default function HomeScreen() {
 
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        ) : loadError ? (
+          <EmptyState
+            title="Greška pri učitavanju"
+            description={loadError}
+            actionLabel="Pokušaj ponovo"
+            onAction={() => {
+              setLoading(true);
+              loadData();
+            }}
+          />
         ) : (
           <>
             <WarrantySummaryCard

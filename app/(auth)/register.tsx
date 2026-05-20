@@ -20,6 +20,7 @@ export default function RegisterScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState(false);
 
   const canSubmit =
     email.trim().length > 0 &&
@@ -41,9 +42,14 @@ export default function RegisterScreen() {
     }
     setLoading(true);
     setError('');
-    const { error: err } = await signUp(email.trim(), password);
+    const { error: err, needsEmailConfirmation } = await signUp(email.trim(), password);
     if (err) {
       setError(err);
+    } else if (needsEmailConfirmation) {
+      if (Platform.OS !== 'web') {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      setPendingEmail(true);
     } else {
       if (Platform.OS !== 'web') {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -60,6 +66,22 @@ export default function RegisterScreen() {
     if (err) setError(err);
     setGoogleLoading(false);
   };
+
+  if (pendingEmail) {
+    return (
+      <AuthShell
+        cardTitle="Proverite email"
+        cardSubtitle="Poslali smo vam link za potvrdu naloga"
+        showBack
+      >
+        <Text style={styles.pendingText}>
+          Otvorite poruku na adresi {email.trim()} i kliknite na link za aktivaciju. Tek
+          posle toga možete da se prijavite.
+        </Text>
+        <AuthPrimaryButton title="Idi na prijavu" onPress={() => router.replace('/(auth)')} />
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell
@@ -122,6 +144,13 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
+  pendingText: {
+    fontSize: 15,
+    fontFamily: 'PlusJakartaSans-Regular',
+    color: colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: 24,
+  },
   form: { gap: 14 },
   linkRow: {
     flexDirection: 'row',

@@ -1,5 +1,13 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +21,7 @@ import { SearchField } from '@/components/ui/SearchField';
 import { ReceiptListCard, type ReceiptItemPreview } from '@/components/ui/ReceiptListCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { getSupabaseErrorMessage } from '@/lib/supabase-errors';
 
 interface ReceiptWithItems {
   id: string;
@@ -39,12 +48,14 @@ export default function TimelineScreen() {
   const { scrollBottomPadding } = useTabBarLayout();
   const [receipts, setReceipts] = useState<ReceiptWithItems[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const loadReceipts = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('receipts')
       .select(
         `id, store_name, purchase_date, total_amount, pib, receipt_number, image_url,
@@ -53,7 +64,15 @@ export default function TimelineScreen() {
       .eq('user_id', user.id)
       .order('purchase_date', { ascending: false });
 
-    if (data) setReceipts(data as ReceiptWithItems[]);
+    const err = getSupabaseErrorMessage(error);
+    if (err) {
+      setLoadError(err);
+      setLoading(false);
+      return;
+    }
+    setLoadError(null);
+    setReceipts((data ?? []) as ReceiptWithItems[]);
+    setLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -100,6 +119,17 @@ export default function TimelineScreen() {
   }, [isSearching, displayed.length, receipts.length]);
 
   const emptyState = useMemo(() => {
+    if (loadError && !isSearching && filter === 'all') {
+      return {
+        title: 'Greška pri učitavanju',
+        description: loadError,
+        actionLabel: 'Pokušaj ponovo',
+        onAction: () => {
+          setLoading(true);
+          loadReceipts();
+        },
+      };
+    }
     if (isSearching) {
       return {
         title: 'Nema rezultata',
@@ -122,7 +152,7 @@ export default function TimelineScreen() {
       actionLabel: 'Dodaj račun',
       onAction: () => router.push('/(tabs)/scan'),
     };
-  }, [isSearching, searchQuery, filter]);
+  }, [isSearching, searchQuery, filter, loadError, loadReceipts]);
 
   return (
     <AppScreen>
@@ -159,8 +189,12 @@ export default function TimelineScreen() {
           ) : null}
         </View>
 
+        {loading ? (
+          <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
+        ) : null}
+
         <FlatList
-          data={displayed}
+          data={loading ? [] : displayed}
           keyExtractor={(item) => item.id}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -234,4 +268,5 @@ const styles = StyleSheet.create({
   },
   list: { paddingHorizontal: 20 },
   listEmpty: { flexGrow: 1 },
+  loader: { marginVertical: 32 },
 });

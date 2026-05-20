@@ -119,7 +119,13 @@ export default function EditReceiptScreen() {
               Automatski prepoznati podaci mogu biti netačni — proverite prodavnicu, iznos i datum.
             </Text>
           </View>
-        ) : null}
+        ) : (
+          <View style={styles.warningBanner}>
+            <Text style={styles.warningText}>
+              Podaci sa računa nisu automatski prepoznati. Unesite prodavnicu, datum i stavke ručno.
+            </Text>
+          </View>
+        )}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 

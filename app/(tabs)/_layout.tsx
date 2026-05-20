@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { hasVerifiedEmail } from '@/lib/auth/session';
 import { colors } from '@/lib/colors';
 import { Hop as Home, Clock, Bell, User } from 'lucide-react-native';
 import { ScanTabButton } from '@/components/ui/ScanTabButton';
@@ -15,12 +16,12 @@ export default function TabLayout() {
   const { count: reminderBadge } = useReminderBadge();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && (!user || !hasVerifiedEmail(user))) {
       router.replace('/(auth)');
     }
   }, [user, loading]);
 
-  if (loading || !user) return null;
+  if (loading || !user || !hasVerifiedEmail(user)) return null;
 
   return (
     <Tabs
