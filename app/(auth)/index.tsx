@@ -10,6 +10,7 @@ import { AuthPrimaryButton } from '@/components/auth/AuthPrimaryButton';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner';
+import { LegalLinks } from '@/components/ui/LegalLinks';
 
 export default function LoginScreen() {
   const { signIn, signInWithGoogle, resetPassword } = useAuth();
@@ -117,6 +118,8 @@ export default function LoginScreen() {
         <Text style={styles.linkMuted}>Nemate nalog? </Text>
         <Text style={styles.link}>Registrujte se</Text>
       </TouchableOpacity>
+
+      <LegalLinks variant="consent" consentIntro="Korišćenjem aplikacije prihvatate" />
     </AuthShell>
   );
 }

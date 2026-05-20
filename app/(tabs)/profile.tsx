@@ -11,6 +11,7 @@ import { BrandWordmark } from '@/components/BrandWordmark';
 import { getUserInitials, getGreetingName } from '@/lib/greeting';
 import { DigitalReceiptFeature } from '@/components/ui/DigitalReceiptFeature';
 import { NotificationSettingsCard } from '@/components/ui/NotificationSettingsCard';
+import { LegalLinks } from '@/components/ui/LegalLinks';
 import { useTabBarLayout } from '@/hooks/useTabBarLayout';
 
 export default function ProfileScreen() {
@@ -71,6 +72,14 @@ export default function ProfileScreen() {
           <DigitalReceiptFeature embedded />
         </Card>
 
+        <Text style={styles.sectionTitle}>Pravno</Text>
+        <Card style={styles.legalCard}>
+          <Text style={styles.legalIntro}>
+            Informacije o obradi ličnih podataka i uslovima korišćenja aplikacije.
+          </Text>
+          <LegalLinks variant="profile" />
+        </Card>
+
         <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.85}>
           <LogOut size={20} color={colors.error} />
           <Text style={styles.signOutText}>Odjavi se</Text>
@@ -129,6 +138,14 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   aboutCard: { marginBottom: 28 },
+  legalCard: { marginBottom: 28 },
+  legalIntro: {
+    fontSize: 13,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
   wordmark: { marginBottom: 12 },
   infoText: {
     fontSize: 14,

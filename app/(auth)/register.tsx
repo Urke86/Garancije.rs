@@ -10,6 +10,7 @@ import { AuthPrimaryButton } from '@/components/auth/AuthPrimaryButton';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner';
+import { LegalLinks } from '@/components/ui/LegalLinks';
 
 export default function RegisterScreen() {
   const { signUp, signInWithGoogle } = useAuth();
@@ -108,6 +109,8 @@ export default function RegisterScreen() {
           loading={loading}
           disabled={!canSubmit}
         />
+
+        <LegalLinks variant="consent" />
       </View>
 
       <TouchableOpacity onPress={() => router.back()} style={styles.linkRow}>
