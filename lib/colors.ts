@@ -32,4 +32,11 @@ export const colors = {
   textInverse: '#FFFFFF',
 
   disabled: '#94A3B8',
+
+  /** Bottom tab bar */
+  tabInactive: '#7A8CA5',
+  tabActive: '#062B5F',
+  tabBarGlass: 'rgba(255, 255, 255, 0.92)',
+  tabBarBorder: 'rgba(255, 255, 255, 0.5)',
+  tabActiveGradient: ['#0077C8', '#00C2CB', '#7ED957'] as const,
 };

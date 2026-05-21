@@ -5,7 +5,7 @@ import type { EdgeInsets } from 'react-native-safe-area-context';
 export const TAB_BAR_CONTENT_HEIGHT = 52;
 export const TAB_BAR_TOP_PADDING = 8;
 /** FAB Skeniraj izlazi iznad tab bara. */
-export const TAB_BAR_FAB_OVERFLOW = 28;
+export const TAB_BAR_FAB_OVERFLOW = 32;
 
 /**
  * Donji inset za tab bar. Na Androidu sa 3-button navigacijom safe area često

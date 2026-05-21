@@ -1,6 +1,16 @@
-import { TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { useEffect } from 'react';
+import { TouchableOpacity, View, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Camera } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+import { Receipt, Plus } from 'lucide-react-native';
 import { colors } from '@/lib/colors';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 
@@ -8,27 +18,75 @@ interface Props extends BottomTabBarButtonProps {
   bottomInset?: number;
 }
 
+const FAB_SIZE = 64;
+
 export function ScanTabButton({ onPress, accessibilityState, bottomInset = 0 }: Props) {
   const focused = accessibilityState?.selected;
-  const lift = bottomInset > 0 ? -20 : -18;
+  const lift = bottomInset > 0 ? -22 : -20;
+  const scale = useSharedValue(1);
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    scale.value = withSpring(focused ? 1.06 : 1, { damping: 12, stiffness: 200 });
+  }, [focused, scale]);
+
+  useEffect(() => {
+    if (focused) {
+      pulse.value = 1;
+      return;
+    }
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.08, { duration: 1400 }),
+        withTiming(1, { duration: 1400 }),
+      ),
+      -1,
+      false,
+    );
+  }, [focused, pulse]);
+
+  const fabStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value * pulse.value }],
+  }));
+
+  const handlePress: BottomTabBarButtonProps['onPress'] = (event) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    onPress?.(event);
+  };
 
   return (
     <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.9}
+      onPress={handlePress}
+      activeOpacity={0.92}
       style={[styles.wrap, { top: lift }]}
       accessibilityRole="button"
       accessibilityState={accessibilityState}
-      accessibilityLabel="Skeniraj račun"
+      accessibilityLabel="Dodaj račun"
+      accessibilityHint="Skenirajte ili izaberite fiskalni račun"
     >
-      <LinearGradient
-        colors={[colors.primary, colors.accent]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.fab, focused && styles.fabFocused]}
-      >
-        <Camera size={26} color={colors.textInverse} strokeWidth={2.2} />
-      </LinearGradient>
+      <Animated.View style={fabStyle}>
+        {!focused ? <View style={styles.halo} pointerEvents="none" /> : null}
+        <LinearGradient
+          colors={[...colors.tabActiveGradient]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.fab, focused && styles.fabFocused]}
+        >
+          <View style={styles.iconCluster}>
+            <Receipt
+              size={28}
+              color={colors.textInverse}
+              strokeWidth={2.2}
+              fill="rgba(255,255,255,0.22)"
+            />
+            <View style={styles.plusBadge}>
+              <Plus size={15} color={colors.primary} strokeWidth={3} />
+            </View>
+          </View>
+        </LinearGradient>
+      </Animated.View>
     </TouchableOpacity>
   );
 }
@@ -38,26 +96,54 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  halo: {
+    position: 'absolute',
+    width: FAB_SIZE + 20,
+    height: FAB_SIZE + 20,
+    borderRadius: (FAB_SIZE + 20) / 2,
+    backgroundColor: 'rgba(0, 194, 203, 0.2)',
+    top: -10,
+    left: -10,
+  },
   fab: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 4,
-    borderColor: colors.surface,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
     ...Platform.select({
-      web: { boxShadow: '0 8px 20px rgba(6, 43, 95, 0.25)' } as object,
+      web: { boxShadow: '0 10px 28px rgba(0, 119, 200, 0.35)' } as object,
       default: {
-        shadowColor: colors.primary,
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.28,
-        shadowRadius: 10,
-        elevation: 8,
+        shadowColor: '#0077C8',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.35,
+        shadowRadius: 16,
+        elevation: 12,
       },
     }),
   },
   fabFocused: {
-    transform: [{ scale: 1.05 }],
+    borderColor: '#FFFFFF',
+  },
+  iconCluster: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
+  },
+  plusBadge: {
+    position: 'absolute',
+    bottom: 2,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.textInverse,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(6, 43, 95, 0.08)',
   },
 });

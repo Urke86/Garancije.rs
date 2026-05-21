@@ -1,18 +1,13 @@
 import { Tabs } from 'expo-router';
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasVerifiedEmail } from '@/lib/auth/session';
-import { colors } from '@/lib/colors';
-import { Hop as Home, Clock, Bell, User } from 'lucide-react-native';
-import { ScanTabButton } from '@/components/ui/ScanTabButton';
-import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { PremiumTabBar } from '@/components/ui/PremiumTabBar';
 import { useReminderBadge } from '@/hooks/useReminderBadge';
 
 export default function TabLayout() {
   const { user, loading } = useAuth();
-  const { bottomInset, height, topPadding } = useTabBarLayout();
   const { count: reminderBadge } = useReminderBadge();
 
   useEffect(() => {
@@ -25,37 +20,9 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <PremiumTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopWidth: 1,
-          borderTopColor: 'rgba(6, 43, 95, 0.06)',
-          paddingTop: topPadding,
-          height,
-          paddingBottom: bottomInset,
-          ...Platform.select({
-            web: { boxShadow: '0 -4px 20px rgba(6, 43, 95, 0.08)' } as object,
-            default: {
-              shadowColor: colors.primary,
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.06,
-              shadowRadius: 12,
-              elevation: 12,
-            },
-          }),
-        },
-        tabBarItemStyle: {
-          paddingTop: 2,
-        },
-        tabBarLabelStyle: {
-          fontFamily: 'PlusJakartaSans-Medium',
-          fontSize: 11,
-          marginTop: 2,
-          marginBottom: Platform.OS === 'android' ? 2 : 0,
-        },
       }}
     >
       <Tabs.Screen
@@ -63,16 +30,13 @@ export default function TabLayout() {
         options={{
           title: 'Početna',
           tabBarAccessibilityLabel: 'Početna',
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="scan"
         options={{
-          title: 'Skeniraj',
-          tabBarAccessibilityLabel: 'Skeniraj račun',
-          tabBarLabel: () => null,
-          tabBarButton: (props) => <ScanTabButton {...props} bottomInset={bottomInset} />,
+          title: 'Dodaj',
+          tabBarAccessibilityLabel: 'Dodaj račun',
         }}
       />
       <Tabs.Screen
@@ -80,7 +44,6 @@ export default function TabLayout() {
         options={{
           title: 'Kupovine',
           tabBarAccessibilityLabel: 'Kupovine',
-          tabBarIcon: ({ color, size }) => <Clock size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -89,9 +52,7 @@ export default function TabLayout() {
           title: 'Podsetnici',
           tabBarAccessibilityLabel:
             reminderBadge > 0 ? `Podsetnici, ${reminderBadge} nepročitanih` : 'Podsetnici',
-          tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
           tabBarBadge: reminderBadge > 0 ? reminderBadge : undefined,
-          tabBarBadgeStyle: { backgroundColor: colors.accent, fontSize: 10 },
         }}
       />
       <Tabs.Screen
@@ -99,7 +60,6 @@ export default function TabLayout() {
         options={{
           title: 'Profil',
           tabBarAccessibilityLabel: 'Profil',
-          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />
     </Tabs>

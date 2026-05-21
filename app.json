@@ -25,7 +25,8 @@
         "barStyle": "dark-content"
       },
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/images/foreground.png",
+        "monochromeImage": "./assets/images/monochrome.png",
         "backgroundColor": "#F7FAFC"
       }
     },
@@ -49,7 +50,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/images/icon.png",
+          "icon": "./assets/images/notification-icon.png",
           "color": "#062B5F",
           "defaultChannel": "reminders"
         }
