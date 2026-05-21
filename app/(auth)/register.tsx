@@ -97,7 +97,7 @@ export default function RegisterScreen() {
 
       <View style={styles.form}>
         <AuthInput
-          label="Email"
+          label="E-pošta"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"

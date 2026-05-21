@@ -23,12 +23,16 @@ export function SearchField({ value, onChangeText, placeholder = 'Pretraži kupo
         autoCorrect={false}
         returnKeyType="search"
         clearButtonMode="never"
+        accessibilityLabel="Pretraga kupovina"
+        accessibilityHint="Unesite prodavnicu, proizvod, PIB ili broj računa"
       />
       {value.length > 0 ? (
         <TouchableOpacity
           onPress={() => onChangeText('')}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.clearBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Obriši pretragu"
         >
           <X size={18} color={colors.textMuted} />
         </TouchableOpacity>

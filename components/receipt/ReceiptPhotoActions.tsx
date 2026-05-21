@@ -57,6 +57,8 @@ export function ReceiptPhotoActions({ imageStored, productName }: Props) {
           style={styles.actionBtn}
           onPress={() => (uri ? setViewerOpen(true) : Alert.alert('Greška', 'Slika nije dostupna.'))}
           disabled={!uri || loading}
+          accessibilityRole="button"
+          accessibilityLabel="Prikaži fotografiju računa"
         >
           <Eye size={20} color={colors.primary} />
           <Text style={styles.actionText}>Prikaži</Text>
@@ -66,19 +68,23 @@ export function ReceiptPhotoActions({ imageStored, productName }: Props) {
           style={styles.actionBtn}
           onPress={handlePdf}
           disabled={!uri || loading || busy !== null}
+          accessibilityRole="button"
+          accessibilityLabel="Preuzmi PDF računa"
         >
           {busy === 'pdf' ? (
             <ActivityIndicator size="small" color={colors.primary} />
           ) : (
             <FileDown size={20} color={colors.primary} />
           )}
-          <Text style={styles.actionText}>Download PDF</Text>
+          <Text style={styles.actionText}>Preuzmi PDF</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.actionBtn}
           onPress={handleShare}
           disabled={!uri || loading || busy !== null}
+          accessibilityRole="button"
+          accessibilityLabel="Podeli fotografiju računa"
         >
           {busy === 'share' ? (
             <ActivityIndicator size="small" color={colors.primary} />

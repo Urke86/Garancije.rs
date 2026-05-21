@@ -17,9 +17,18 @@ interface Props {
   disabled?: boolean;
   style?: ViewStyle;
   icon?: ReactNode;
+  accessibilityLabel?: string;
 }
 
-export function PrimaryButton({ title, onPress, loading, disabled, style, icon }: Props) {
+export function PrimaryButton({
+  title,
+  onPress,
+  loading,
+  disabled,
+  style,
+  icon,
+  accessibilityLabel,
+}: Props) {
   const inactive = disabled || loading;
 
   return (
@@ -28,6 +37,9 @@ export function PrimaryButton({ title, onPress, loading, disabled, style, icon }
       disabled={inactive}
       activeOpacity={0.85}
       style={[styles.touch, style]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: inactive, busy: loading }}
     >
       <LinearGradient
         colors={inactive ? [colors.disabled, colors.disabled] : [colors.primary, colors.accent]}

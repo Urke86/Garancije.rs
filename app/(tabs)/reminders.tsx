@@ -138,6 +138,11 @@ export default function RemindersScreen() {
         activeOpacity={0.85}
         onPress={() => router.push(`/receipt/item/${item.receipt_item_id}`)}
         onLongPress={showActions ? () => showSnoozeOptions(item.id) : undefined}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.message}, ${item.receipt_items?.name}`}
+        accessibilityHint={
+          showActions ? 'Pritisnite za detalje stavke. Dugi pritisak za odložiti podsetnik.' : undefined
+        }
       >
         <Card
           style={[
@@ -172,16 +177,32 @@ export default function RemindersScreen() {
             </View>
           </View>
           {showActions ? (
-            <TouchableOpacity
-              style={styles.dismissButton}
-              onPress={(e) => {
-                e.stopPropagation?.();
-                dismissReminder(item.id);
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Check size={18} color={colors.primary} />
-            </TouchableOpacity>
+            <View style={styles.actionButtons}>
+              <TouchableOpacity
+                style={styles.snoozeButton}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  showSnoozeOptions(item.id);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Odloži podsetnik"
+              >
+                <Clock size={18} color={colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.dismissButton}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  dismissReminder(item.id);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="button"
+                accessibilityLabel="Označi podsetnik kao završen"
+              >
+                <Check size={18} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
           ) : null}
         </Card>
       </TouchableOpacity>
@@ -207,7 +228,9 @@ export default function RemindersScreen() {
             />
             <NotificationPermissionBanner onPermissionGranted={() => register()} />
             {pending.length === 0 && dismissed.length === 0 ? null : (
-              <Text style={styles.hint}>Dugi pritisak za odložiti podsetnik</Text>
+              <Text style={styles.hint}>
+                Koristite dugme sa sata pored podsetnika da ga odložite za 1 ili 7 dana
+              </Text>
             )}
           </View>
         }
@@ -299,6 +322,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  snoozeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: colors.accentLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 217, 0.2)',
   },
   dismissButton: {
     width: 36,

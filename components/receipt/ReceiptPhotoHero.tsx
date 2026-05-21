@@ -54,6 +54,8 @@ export function ReceiptPhotoHero({ imageStored, productName }: Props) {
         onPress={() => uri && setViewerOpen(true)}
         disabled={!uri || loading}
         style={styles.previewWrap}
+        accessibilityRole="button"
+        accessibilityLabel="Prikaži fotografiju računa na punom ekranu"
       >
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} />
@@ -118,6 +120,9 @@ function ActionChip({
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: Boolean(disabled) }}
     >
       {icon}
       <Text style={styles.chipText}>{label}</Text>

@@ -14,9 +14,17 @@ interface Props {
   loading?: boolean;
   disabled?: boolean;
   style?: ViewStyle;
+  accessibilityLabel?: string;
 }
 
-export function AuthPrimaryButton({ title, onPress, loading, disabled, style }: Props) {
+export function AuthPrimaryButton({
+  title,
+  onPress,
+  loading,
+  disabled,
+  style,
+  accessibilityLabel,
+}: Props) {
   const inactive = disabled || loading;
 
   return (
@@ -25,6 +33,9 @@ export function AuthPrimaryButton({ title, onPress, loading, disabled, style }: 
       disabled={inactive}
       activeOpacity={0.85}
       style={[styles.touch, style]}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityState={{ disabled: inactive, busy: loading }}
     >
       <LinearGradient
         colors={inactive ? [colors.disabled, colors.disabled] : [colors.primary, colors.accent]}

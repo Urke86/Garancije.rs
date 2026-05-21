@@ -19,6 +19,9 @@ export function GoogleSignInButton({
       onPress={onPress}
       disabled={loading}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: loading, busy: loading }}
     >
       {loading ? (
         <ActivityIndicator color={colors.textSecondary} />

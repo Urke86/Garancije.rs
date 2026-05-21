@@ -39,6 +39,14 @@
       "expo-font",
       "expo-web-browser",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Garancije.rs pristupa vašim fotografijama da biste izabrali sliku fiskalnog računa.",
+          "cameraPermission": "Garancije.rs koristi kameru da biste slikali fiskalni račun.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/icon.png",

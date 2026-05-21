@@ -88,7 +88,7 @@ export default function LoginScreen() {
 
       <View style={styles.form}>
         <AuthInput
-          label="Email"
+          label="E-pošta"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -107,7 +107,12 @@ export default function LoginScreen() {
           placeholder="••••••••"
         />
 
-        <TouchableOpacity onPress={handleForgotPassword} style={styles.forgotWrap}>
+        <TouchableOpacity
+          onPress={handleForgotPassword}
+          style={styles.forgotWrap}
+          accessibilityRole="button"
+          accessibilityLabel="Zaboravili ste lozinku"
+        >
           <Text style={styles.forgot}>Zaboravili ste lozinku?</Text>
         </TouchableOpacity>
 
@@ -119,7 +124,12 @@ export default function LoginScreen() {
         />
       </View>
 
-      <TouchableOpacity onPress={() => router.push('/(auth)/register')} style={styles.linkRow}>
+      <TouchableOpacity
+        onPress={() => router.push('/(auth)/register')}
+        style={styles.linkRow}
+        accessibilityRole="button"
+        accessibilityLabel="Registrujte se"
+      >
         <Text style={styles.linkMuted}>Nemate nalog? </Text>
         <Text style={styles.link}>Registrujte se</Text>
       </TouchableOpacity>
@@ -130,7 +140,7 @@ export default function LoginScreen() {
     <ConfirmModal
       visible={resetDialog === 'need_email'}
       title="Reset lozinke"
-      message="Unesite email adresu u polje iznad, pa ponovo dodirnite „Zaboravili ste lozinku?“"
+      message="Unesite adresu e-pošte u polje iznad, pa ponovo dodirnite „Zaboravili ste lozinku?“"
       confirmLabel="U redu"
       alertOnly
       onConfirm={() => setResetDialog('closed')}

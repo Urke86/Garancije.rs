@@ -66,7 +66,7 @@ export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props
           style={[styles.wordmark, { marginLeft: Math.round(logoSize.width * 0.02) }]}
         />
       </View>
-      <Text style={[styles.tagline, { marginTop: 10 }]}>Čuvamo tvoj račun. Čuvamo i garanciju.</Text>
+      <Text style={[styles.tagline, { marginTop: 10 }]}>Čuvamo vaš račun. Čuvamo i garanciju.</Text>
       <AuthBenefits />
     </View>
   );

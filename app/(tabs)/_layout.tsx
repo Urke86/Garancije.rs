@@ -62,6 +62,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Početna',
+          tabBarAccessibilityLabel: 'Početna',
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
@@ -69,6 +70,7 @@ export default function TabLayout() {
         name="scan"
         options={{
           title: 'Skeniraj',
+          tabBarAccessibilityLabel: 'Skeniraj račun',
           tabBarLabel: () => null,
           tabBarButton: (props) => <ScanTabButton {...props} bottomInset={bottomInset} />,
         }}
@@ -77,6 +79,7 @@ export default function TabLayout() {
         name="timeline"
         options={{
           title: 'Kupovine',
+          tabBarAccessibilityLabel: 'Kupovine',
           tabBarIcon: ({ color, size }) => <Clock size={size} color={color} />,
         }}
       />
@@ -84,6 +87,8 @@ export default function TabLayout() {
         name="reminders"
         options={{
           title: 'Podsetnici',
+          tabBarAccessibilityLabel:
+            reminderBadge > 0 ? `Podsetnici, ${reminderBadge} nepročitanih` : 'Podsetnici',
           tabBarIcon: ({ color, size }) => <Bell size={size} color={color} />,
           tabBarBadge: reminderBadge > 0 ? reminderBadge : undefined,
           tabBarBadgeStyle: { backgroundColor: colors.accent, fontSize: 10 },
@@ -93,6 +98,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profil',
+          tabBarAccessibilityLabel: 'Profil',
           tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
         }}
       />

@@ -128,7 +128,12 @@ export default function ScanScreen() {
           <View style={styles.previewWrap}>
             <Image source={{ uri: image }} style={styles.previewImage} resizeMode="contain" />
             {!loading ? (
-              <TouchableOpacity style={styles.retryRow} onPress={() => setImage(null)}>
+              <TouchableOpacity
+                style={styles.retryRow}
+                onPress={() => setImage(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Skeniraj ponovo"
+              >
                 <Scan size={20} color={colors.accent} />
                 <Text style={styles.retryText}>Skeniraj ponovo</Text>
               </TouchableOpacity>
@@ -136,7 +141,12 @@ export default function ScanScreen() {
           </View>
         ) : (
           <View style={styles.actions}>
-            <TouchableOpacity onPress={() => pickImage(true)} activeOpacity={0.85}>
+            <TouchableOpacity
+              onPress={() => pickImage(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Slikaj račun kamerom"
+            >
               <Card style={styles.actionCard}>
                 <View style={[styles.actionIcon, { backgroundColor: colors.accentLight }]}>
                   <Camera size={32} color={colors.primary} />
@@ -146,7 +156,12 @@ export default function ScanScreen() {
               </Card>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => pickImage(false)} activeOpacity={0.85}>
+            <TouchableOpacity
+              onPress={() => pickImage(false)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Izaberi sliku računa iz galerije"
+            >
               <Card style={styles.actionCard}>
                 <View style={[styles.actionIcon, { backgroundColor: colors.accentGreenLight }]}>
                   <ImageIcon size={32} color={colors.primary} />

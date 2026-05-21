@@ -104,7 +104,13 @@ export default function ProfileScreen() {
 
         <Text style={styles.sectionTitle}>Nalog i bezbednost</Text>
         <Card style={styles.accountActionsCard}>
-          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.85}>
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={handleSignOut}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Odjavi se"
+          >
             <LogOut size={20} color={colors.error} />
             <Text style={styles.signOutText}>Odjavi se</Text>
           </TouchableOpacity>

@@ -71,7 +71,10 @@ export async function downloadReceiptPhotoAsPdf(imageUri: string, title: string)
         UTI: 'com.adobe.pdf',
       });
     } else {
-      Alert.alert('PDF kreiran', pdfUri);
+      Alert.alert(
+        'PDF kreiran',
+        'Deljenje nije dostupno na ovom uređaju. Pokušajte ponovo ili koristite drugi uređaj.',
+      );
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Nepoznata greška';
