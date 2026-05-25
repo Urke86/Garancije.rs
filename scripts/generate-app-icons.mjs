@@ -16,13 +16,14 @@ const source = path.join(root, 'assets/images/Logo Garancije-providan.png');
 const outDir = path.join(root, 'assets/images');
 
 const SIZE = 1024;
-const BG = { r: 247, g: 250, b: 252, alpha: 1 };
+/** Bela pozadina — launcher adaptive layer + store icon */
+const BG = { r: 255, g: 255, b: 255, alpha: 1 };
 const BRAND_DARK = { r: 6, g: 43, b: 95, alpha: 1 };
 
-/** iOS / store icon — logo sa pozadinom, malo veći */
-const ICON_LOGO_SCALE = 0.86;
-/** Android adaptive foreground — unutar safe zone, premium padding */
-const ADAPTIVE_LOGO_SCALE = 0.72;
+/** iOS / store icon — logo sa belom pozadinom */
+const ICON_LOGO_SCALE = 0.84;
+/** Android adaptive foreground — ~66% canvas (safe zone + beli margin) */
+const ADAPTIVE_LOGO_SCALE = 0.66;
 /** Splash — manji, više vazduha */
 const SPLASH_LOGO_SCALE = 0.38;
 /** Favicon */
@@ -56,23 +57,6 @@ async function buildSquareIcon({ transparentBg, logoScale, shadow = false }) {
   const top = Math.round((SIZE - logoH) / 2);
 
   const composites = [];
-
-  if (shadow && transparentBg) {
-    const shadowPad = 48;
-    const shadowInput = await sharp(logo)
-      .ensureAlpha()
-      .extractChannel('alpha')
-      .blur(14)
-      .linear(0.22, 0)
-      .toBuffer();
-
-    composites.push({
-      input: shadowInput,
-      left: left + 6,
-      top: top + 14,
-      blend: 'over',
-    });
-  }
 
   composites.push({
     input: logo,
@@ -161,10 +145,16 @@ await icon.toFile(path.join(outDir, 'icon.png'));
 const adaptive = await buildSquareIcon({
   transparentBg: true,
   logoScale: ADAPTIVE_LOGO_SCALE,
-  shadow: true,
+  shadow: false,
 });
 await adaptive.toFile(path.join(outDir, 'adaptive-icon.png'));
 await adaptive.toFile(path.join(outDir, 'foreground.png'));
+
+await sharp({
+  create: { width: SIZE, height: SIZE, channels: 3, background: '#FFFFFF' },
+})
+  .png()
+  .toFile(path.join(outDir, 'adaptive-background.png'));
 
 const mono = await buildMonochrome(trimmed);
 await mono.toFile(path.join(outDir, 'monochrome.png'));
@@ -194,6 +184,7 @@ console.log(
     'notification-icon.png',
     'favicon.png',
     'splash-icon.png',
-    `(adaptive scale ${ADAPTIVE_LOGO_SCALE * 100}% of ${SIZE}px canvas)`,
+    'adaptive-background.png',
+    `(adaptive scale ${ADAPTIVE_LOGO_SCALE * 100}% of ${SIZE}px canvas, white background)`,
   ].join('\n  '),
 );
