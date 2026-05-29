@@ -21,14 +21,20 @@ import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { useTabBarLayout } from '@/hooks/useTabBarLayout';
-import { emptyOcrResult, invokeReceiptOcr } from '@/lib/ocr-receipt';
+import { emptyOcrResult, hasRecognizedFields, invokeReceiptOcr } from '@/lib/ocr-receipt';
+import { prepareImageForOcr } from '@/lib/ocr-image-preprocess';
+import { savePendingOcr } from '@/lib/ocr-pending';
+
+type ScanPhase = 'idle' | 'upload' | 'ocr';
 
 export default function ScanScreen() {
   const { user } = useAuth();
   const { scrollBottomPadding } = useTabBarLayout();
   const [image, setImage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState<ScanPhase>('idle');
   const [error, setError] = useState('');
+
+  const loading = phase !== 'idle';
 
   const pickImage = async (useCamera: boolean) => {
     setError('');
@@ -53,52 +59,70 @@ export default function ScanScreen() {
 
   const processImage = async (asset: ImagePicker.ImagePickerAsset) => {
     if (!user) return;
-    setLoading(true);
+    setPhase('upload');
     setError('');
 
     try {
-      let base64Data = asset.base64;
+      let prepared: { uri: string; base64: string };
 
-      if (!base64Data && Platform.OS !== 'web') {
-        base64Data = await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: 'base64',
-        });
-      }
-
-      if (!base64Data) {
-        setError('Nije moguće učitati sliku');
-        setLoading(false);
-        return;
+      if (Platform.OS === 'web') {
+        let base64Data = asset.base64;
+        if (!base64Data) {
+          setError('Nije moguće učitati sliku');
+          setPhase('idle');
+          return;
+        }
+        prepared = { uri: asset.uri, base64: base64Data };
+      } else {
+        prepared = await prepareImageForOcr(asset.uri, asset.base64);
+        setImage(prepared.uri);
       }
 
       const fileName = `${user.id}/${Date.now()}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from('receipt-images')
-        .upload(fileName, decode(base64Data), { contentType: 'image/jpeg' });
+        .upload(fileName, decode(prepared.base64), { contentType: 'image/jpeg' });
 
       if (uploadError) {
         setError('Greška pri otpremanju slike: ' + uploadError.message);
-        setLoading(false);
+        setPhase('idle');
         return;
       }
 
-      const { data: ocrResult, error: ocrError } = await invokeReceiptOcr(base64Data);
+      setPhase('ocr');
+      const { data: ocrResult, error: ocrError } = await invokeReceiptOcr(prepared.base64);
       const ocrData = ocrResult ?? emptyOcrResult();
+      const warning =
+        ocrError ||
+        (!hasRecognizedFields(ocrData)
+          ? 'Podaci nisu prepoznati — proverite sliku ili unesite ručno.'
+          : null);
+
+      const ocrKey = await savePendingOcr({
+        result: ocrData,
+        warning,
+      });
 
       router.push({
         pathname: '/receipt/edit',
         params: {
           image_url: fileName,
-          ocr_data: JSON.stringify(ocrData),
-          ...(ocrError ? { ocr_warning: ocrError } : {}),
+          ocr_key: ocrKey,
         },
       });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Nepoznata greška';
       setError('Greška: ' + message);
     }
-    setLoading(false);
+    setPhase('idle');
   };
+
+  const loadingMessage =
+    phase === 'upload'
+      ? 'Otpremam sliku...'
+      : phase === 'ocr'
+        ? 'Prepoznajem tekst na računu...'
+        : 'Obrađujem račun...';
 
   return (
     <AppScreen>
@@ -112,6 +136,15 @@ export default function ScanScreen() {
           subtitle="Slikajte ili izaberite fiskalni račun — OCR prepoznaje podatke automatski"
         />
 
+        {!loading ? (
+          <Card style={styles.tipsCard}>
+            <Text style={styles.tipsTitle}>Saveti za bolji OCR</Text>
+            <Text style={styles.tipsText}>
+              • Ravno držite telefon{'\n'}• Ceo račun u kadru{'\n'}• Dovoljno svetla, bez senki
+            </Text>
+          </Card>
+        ) : null}
+
         {error ? (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>{error}</Text>
@@ -121,23 +154,25 @@ export default function ScanScreen() {
         {loading ? (
           <Card style={styles.loadingCard}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Obrađujem račun...</Text>
-            <Text style={styles.loadingSubtext}>Otpremanje slike i OCR prepoznavanje</Text>
+            <Text style={styles.loadingText}>{loadingMessage}</Text>
+            <Text style={styles.loadingSubtext}>
+              {phase === 'upload'
+                ? 'Slika se čuva na server'
+                : 'Google Vision analizira fiskalni račun'}
+            </Text>
           </Card>
         ) : image ? (
           <View style={styles.previewWrap}>
             <Image source={{ uri: image }} style={styles.previewImage} resizeMode="contain" />
-            {!loading ? (
-              <TouchableOpacity
-                style={styles.retryRow}
-                onPress={() => setImage(null)}
-                accessibilityRole="button"
-                accessibilityLabel="Skeniraj ponovo"
-              >
-                <Scan size={20} color={colors.accent} />
-                <Text style={styles.retryText}>Skeniraj ponovo</Text>
-              </TouchableOpacity>
-            ) : null}
+            <TouchableOpacity
+              style={styles.retryRow}
+              onPress={() => setImage(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Skeniraj ponovo"
+            >
+              <Scan size={20} color={colors.accent} />
+              <Text style={styles.retryText}>Skeniraj ponovo</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.actions}>
@@ -189,6 +224,24 @@ function decode(base64: string): Uint8Array {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20 },
+  tipsCard: {
+    marginBottom: 14,
+    backgroundColor: colors.accentLight,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 217, 0.2)',
+  },
+  tipsTitle: {
+    fontSize: 14,
+    fontFamily: fontFamily.semibold,
+    color: colors.text,
+    marginBottom: 6,
+  },
+  tipsText: {
+    fontSize: 13,
+    fontFamily: fontFamily.regular,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
   errorBanner: {
     backgroundColor: colors.errorLight,
     borderRadius: 12,
@@ -240,6 +293,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: 16,
   },
   previewWrap: { flex: 1, minHeight: 320, marginTop: 8 },
   previewImage: {

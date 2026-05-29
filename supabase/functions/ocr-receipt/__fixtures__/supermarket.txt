@@ -1,0 +1,16 @@
+MAXI DOO BEOGRAD
+Bulevar kralja Aleksandra 123
+PIB: 123456789
+MB: 12345678
+
+------------------------
+Mleko 2.8% 1L          189,00
+Hleb beli 500g         99,00
+Jogurt 1kg            249,00
+------------------------
+UKUPNO:             537,00
+Gotovina             537,00
+
+ESIR broj: ABC12-34567-89012
+Datum: 15.03.2025 14:32:11
+Hvala na poseti!

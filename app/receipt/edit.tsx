@@ -1,59 +1,166 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { getDefaultWarrantyMonths } from '@/lib/warranty';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ReceiptPhotoHero } from '@/components/receipt/ReceiptPhotoHero';
 import { ReceiptEditForm, type ReceiptFormState } from '@/components/receipt/ReceiptEditForm';
 import { saveNewReceipt, type ReceiptItemInput } from '@/lib/receipt-persistence';
-import { hasRecognizedFields, type OcrReceiptResult } from '@/lib/ocr-receipt';
+import {
+  emptyOcrResult,
+  hasRecognizedFields,
+  invokeReceiptOcr,
+  type OcrReceiptResult,
+} from '@/lib/ocr-receipt';
+import { clearPendingOcr, loadPendingOcr } from '@/lib/ocr-pending';
+import { loadReceiptImageBase64 } from '@/lib/receipt-image-base64';
+
+function mapOcrToForm(ocrData: OcrReceiptResult): {
+  form: ReceiptFormState;
+  items: ReceiptItemInput[];
+} {
+  return {
+    form: {
+      store_name: ocrData.store_name || '',
+      purchase_date: ocrData.purchase_date || new Date().toISOString().split('T')[0],
+      total_amount: ocrData.total_amount?.toString() || '',
+      pib: ocrData.pib || '',
+      receipt_number: ocrData.receipt_number || '',
+    },
+    items:
+      ocrData.items?.length > 0
+        ? ocrData.items.map((i) => ({
+            name: i.name || '',
+            category: i.category || 'other',
+            price: i.price?.toString() || '',
+            warranty_months: getDefaultWarrantyMonths(i.category || 'other').toString(),
+          }))
+        : [{ name: '', category: 'other', price: '', warranty_months: '24' }],
+  };
+}
 
 export default function EditReceiptScreen() {
   const { user } = useAuth();
   const params = useLocalSearchParams<{
     image_url: string;
+    ocr_key?: string;
     ocr_data?: string;
     ocr_warning?: string;
   }>();
-  const ocrData: OcrReceiptResult = params.ocr_data
-    ? JSON.parse(params.ocr_data)
-    : {
-        store_name: '',
-        purchase_date: new Date().toISOString().split('T')[0],
-        total_amount: '',
-        pib: '',
-        receipt_number: '',
-        items: [],
-        raw_text: '',
-      };
-  const ocrWarning = params.ocr_warning?.trim() || '';
-  const recognized = hasRecognizedFields(ocrData);
+
+  const [ocrData, setOcrData] = useState<OcrReceiptResult>(emptyOcrResult());
+  const [ocrWarning, setOcrWarning] = useState('');
+  const [loadingOcr, setLoadingOcr] = useState(Boolean(params.ocr_key));
+  const [retryingOcr, setRetryingOcr] = useState(false);
+  const [showRawText, setShowRawText] = useState(false);
 
   const [form, setForm] = useState<ReceiptFormState>({
-    store_name: ocrData.store_name || '',
-    purchase_date: ocrData.purchase_date || new Date().toISOString().split('T')[0],
-    total_amount: ocrData.total_amount?.toString() || '',
-    pib: ocrData.pib || '',
-    receipt_number: ocrData.receipt_number || '',
+    store_name: '',
+    purchase_date: new Date().toISOString().split('T')[0],
+    total_amount: '',
+    pib: '',
+    receipt_number: '',
   });
-  const [items, setItems] = useState<ReceiptItemInput[]>(
-    ocrData.items?.length > 0
-      ? ocrData.items.map((i: { name?: string; category?: string; price?: number }) => ({
-          name: i.name || '',
-          category: i.category || 'other',
-          price: i.price?.toString() || '',
-          warranty_months: getDefaultWarrantyMonths(i.category || 'other').toString(),
-        }))
-      : [{ name: '', category: 'other', price: '', warranty_months: '24' }],
-  );
+  const [items, setItems] = useState<ReceiptItemInput[]>([
+    { name: '', category: 'other', price: '', warranty_months: '24' },
+  ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const applyOcrResult = useCallback((result: OcrReceiptResult, warning: string | null) => {
+    setOcrData(result);
+    setOcrWarning(warning?.trim() || '');
+    const mapped = mapOcrToForm(result);
+    setForm(mapped.form);
+    setItems(mapped.items);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateOcr() {
+      if (params.ocr_key) {
+        const pending = await loadPendingOcr(params.ocr_key);
+        if (cancelled) return;
+        if (pending) {
+          applyOcrResult(pending.result, pending.warning);
+        } else {
+          setOcrWarning('OCR podaci nisu pronađeni — unesite ručno ili ponovite prepoznavanje.');
+        }
+        setLoadingOcr(false);
+        return;
+      }
+
+      if (params.ocr_data) {
+        try {
+          const parsed = JSON.parse(params.ocr_data) as OcrReceiptResult;
+          applyOcrResult(parsed, params.ocr_warning ?? null);
+        } catch {
+          setOcrWarning('OCR podaci nisu validni — unesite podatke ručno.');
+        }
+      } else if (params.ocr_warning) {
+        setOcrWarning(params.ocr_warning);
+      }
+      setLoadingOcr(false);
+    }
+
+    hydrateOcr();
+    return () => {
+      cancelled = true;
+    };
+  }, [params.ocr_key, params.ocr_data, params.ocr_warning, applyOcrResult]);
+
+  useEffect(() => {
+    return () => {
+      if (params.ocr_key) {
+        clearPendingOcr(params.ocr_key).catch(() => undefined);
+      }
+    };
+  }, [params.ocr_key]);
+
+  const recognized = hasRecognizedFields(ocrData);
   const previewName = items.find((i) => i.name.trim())?.name || form.store_name || 'Novi račun';
+
+  const handleRetryOcr = async () => {
+    if (!params.image_url || retryingOcr) return;
+    setRetryingOcr(true);
+    setError('');
+
+    try {
+      const base64 = await loadReceiptImageBase64(params.image_url);
+      if (!base64) {
+        setError('Nije moguće učitati sliku za ponovni OCR.');
+        return;
+      }
+
+      const { data, error: ocrError } = await invokeReceiptOcr(base64);
+      const result = data ?? emptyOcrResult();
+      const warning =
+        ocrError ||
+        (!hasRecognizedFields(result)
+          ? 'Podaci nisu prepoznati — proverite sliku ili unesite ručno.'
+          : null);
+
+      applyOcrResult(result, warning);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Nepoznata greška';
+      setError('OCR greška: ' + message);
+    } finally {
+      setRetryingOcr(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -69,7 +176,7 @@ export default function EditReceiptScreen() {
       {
         ...form,
         image_url: params.image_url || '',
-        raw_ocr_text: ocrData.raw_text || params.ocr_data || '',
+        raw_ocr_text: ocrData.raw_text || '',
       },
       items,
     );
@@ -93,12 +200,14 @@ export default function EditReceiptScreen() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
-          <View>
+          <View style={styles.headerText}>
             <Text style={styles.screenTitle}>Novi račun</Text>
             <Text style={styles.screenSubtitle}>
-              {recognized
-                ? 'OCR je prepoznao podatke — proverite pre čuvanja'
-                : 'Unesite podatke sa računa'}
+              {loadingOcr
+                ? 'Učitavam OCR podatke...'
+                : recognized
+                  ? 'OCR je prepoznao podatke — proverite pre čuvanja'
+                  : 'Unesite podatke sa računa'}
             </Text>
           </View>
         </View>
@@ -107,11 +216,33 @@ export default function EditReceiptScreen() {
           <ReceiptPhotoHero imageStored={params.image_url} productName={previewName} />
         ) : null}
 
-        {ocrWarning ? (
-          <View style={styles.warningBanner}>
-            <Text style={styles.warningText}>
-              OCR nije uspeo u potpunosti ({ocrWarning}). Dopunite podatke ručno.
+        {params.image_url ? (
+          <TouchableOpacity
+            style={styles.retryOcrBtn}
+            onPress={handleRetryOcr}
+            disabled={retryingOcr || loadingOcr}
+            accessibilityRole="button"
+            accessibilityLabel="Ponovi prepoznavanje računa"
+          >
+            {retryingOcr ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <RefreshCw size={18} color={colors.primary} />
+            )}
+            <Text style={styles.retryOcrText}>
+              {retryingOcr ? 'Prepoznajem ponovo...' : 'Ponovi prepoznavanje'}
             </Text>
+          </TouchableOpacity>
+        ) : null}
+
+        {loadingOcr ? (
+          <View style={styles.infoBanner}>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={styles.infoText}>Učitavam prepoznate podatke...</Text>
+          </View>
+        ) : ocrWarning ? (
+          <View style={styles.warningBanner}>
+            <Text style={styles.warningText}>{ocrWarning}</Text>
           </View>
         ) : recognized ? (
           <View style={styles.infoBanner}>
@@ -122,10 +253,34 @@ export default function EditReceiptScreen() {
         ) : (
           <View style={styles.warningBanner}>
             <Text style={styles.warningText}>
-              Podaci sa računa nisu automatski prepoznati. Unesite prodavnicu, datum i stavke ručno.
+              Podaci sa računa nisu automatski prepoznati. Unesite prodavnicu, datum i stavke ručno
+              ili dodirnite „Ponovi prepoznavanje”.
             </Text>
           </View>
         )}
+
+        {ocrData.raw_text ? (
+          <View style={styles.rawTextSection}>
+            <TouchableOpacity
+              style={styles.rawTextToggle}
+              onPress={() => setShowRawText((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel="Prikaži prepoznat tekst"
+            >
+              <Text style={styles.rawTextTitle}>Prepoznat tekst</Text>
+              {showRawText ? (
+                <ChevronUp size={18} color={colors.textMuted} />
+              ) : (
+                <ChevronDown size={18} color={colors.textMuted} />
+              )}
+            </TouchableOpacity>
+            {showRawText ? (
+              <Text style={styles.rawTextBody} selectable>
+                {ocrData.raw_text}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
@@ -158,6 +313,7 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   backBtn: { padding: 4 },
+  headerText: { flex: 1 },
   screenTitle: {
     fontSize: 22,
     fontFamily: fontFamily.bold,
@@ -169,7 +325,27 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
+  retryOcrBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    marginBottom: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(6, 43, 95, 0.15)',
+    backgroundColor: colors.surface,
+  },
+  retryOcrText: {
+    fontSize: 14,
+    fontFamily: fontFamily.semibold,
+    color: colors.primary,
+  },
   infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     backgroundColor: colors.accentLight,
     borderRadius: 12,
     padding: 12,
@@ -178,6 +354,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(0, 184, 217, 0.25)',
   },
   infoText: {
+    flex: 1,
     fontSize: 13,
     fontFamily: fontFamily.regular,
     color: colors.textSecondary,
@@ -196,6 +373,35 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     color: colors.error,
     lineHeight: 19,
+  },
+  rawTextSection: {
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  rawTextToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  rawTextTitle: {
+    fontSize: 13,
+    fontFamily: fontFamily.semibold,
+    color: colors.textSecondary,
+  },
+  rawTextBody: {
+    fontSize: 11,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    lineHeight: 16,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+    maxHeight: 200,
   },
   error: {
     color: colors.error,

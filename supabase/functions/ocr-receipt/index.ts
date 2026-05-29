@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { extractTextFromImage } from "./vision.ts";
-import { parseSerbianReceipt } from "./parse-serbian-receipt.ts";
+import { parseSerbianReceipt, type ParsedReceipt } from "./parse-serbian-receipt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,24 +10,37 @@ const corsHeaders = {
     "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+function emptyResult(): ParsedReceipt {
+  return {
+    store_name: "",
+    purchase_date: new Date().toISOString().split("T")[0],
+    total_amount: "",
+    pib: "",
+    receipt_number: "",
+    items: [],
+    raw_text: "",
+  };
+}
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Method not allowed" }, 405);
   }
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -39,36 +52,25 @@ Deno.serve(async (req: Request) => {
 
   const { data: userData, error: userError } = await userClient.auth.getUser();
   if (userError || !userData.user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Unauthorized" }, 401);
   }
 
   try {
     const { image_base64 } = await req.json();
 
     if (!image_base64 || typeof image_base64 !== "string") {
-      return new Response(JSON.stringify({ error: "No image provided" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ ...emptyResult(), error: "No image provided" });
     }
 
     const rawText = await extractTextFromImage(image_base64);
     const result = parseSerbianReceipt(rawText);
 
-    return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("ocr-receipt error:", message);
 
-    const status = message.includes("nije konfigurisan") ? 503 : 422;
-    return new Response(JSON.stringify({ error: message }), {
-      status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // 200 + error u telu — klijent uvek dobija parsirajući JSON umesto generičkog non-2xx
+    return jsonResponse({ ...emptyResult(), error: message });
   }
 });

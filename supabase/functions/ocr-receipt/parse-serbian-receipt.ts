@@ -18,7 +18,7 @@ const SKIP_LINE =
   /^(PIB|MB|JMBG|PDV|ESIR|PFR|BF|RACUN|RAČUN|RACUN|KASIR|KASIRKA|VREME|DATUM|FISKAL|KOPija|Gotovina|Kartica|Visa|Master|Promet|PROMET|Adresa|Tel|Telefon|www\.|http|===|---|\*+)/i;
 
 const TOTAL_LINE =
-  /^(UKUPNO|UKUPAN|UPLAT|ZA\s+UPLAT|ZA\s+PLACAN|ZA\s+PLAĆAN|ZA\s+PLATITI|SUMA|TOTAL|AMOUNT\s+DUE)/i;
+  /^(UKUPNO|UKUPAN|UPLAT|ZA\s+UPLAT|ZA\s+UPLATU|ZA\s+PLACAN|ZA\s+PLAĆAN|ZA\s+PLATITI|GOTOVINA|KARTICA|SUMA|TOTAL|AMOUNT\s+DUE|IZNOS)/i;
 
 const ITEM_NOISE =
   /^(PDV|POREZ|RABAT|POPUST|POVRAT|POVR\.|POVRACAJ|KUS|KOM|KOL\.|KOLICINA|CENA|IZNOS|A\s*-\s*\d+%|E\s*-\s*\d+%)/i;
@@ -49,8 +49,16 @@ export function parseSerbianReceipt(rawText: string): ParsedReceipt {
 }
 
 function extractPib(text: string): string {
-  const match = text.match(/\bPIB[:\s]*(\d{9})\b/i);
-  return match?.[1] ?? "";
+  const labeled = text.match(/\bPIB[:\s]*(\d{9})\b/i);
+  if (labeled?.[1]) return labeled[1];
+
+  const header = text.slice(0, 600);
+  const standalone = header.match(/\b(\d{9})\b/g);
+  if (standalone?.length) {
+    return standalone[0];
+  }
+
+  return "";
 }
 
 function extractDate(text: string): string {
@@ -107,9 +115,11 @@ function extractTotal(text: string, lines: string[]): string {
   }
 
   const fallbackPatterns = [
-    /UKUPNO[^\d]*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
-    /UPLAT[^\d]*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
-    /TOTAL[^\d]*(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
+    /UKUPNO[^\d]*(\d{1,3}(?:[\s\.]\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
+    /UPLAT[^\d]*(\d{1,3}(?:[\s\.]\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
+    /ZA\s+UPLATU[^\d]*(\d{1,3}(?:[\s\.]\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
+    /GOTOVINA[^\d]*(\d{1,3}(?:[\s\.]\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
+    /TOTAL[^\d]*(\d{1,3}(?:[\s\.]\d{3})*,\d{2}|\d+[,\.]\d{2})/i,
   ];
 
   for (const pattern of fallbackPatterns) {
@@ -182,7 +192,9 @@ function extractItems(lines: string[]): ParsedReceiptItem[] {
 }
 
 function extractAmountFromLine(line: string): number | null {
-  const matches = line.match(/(\d{1,3}(?:\.\d{3})*,\d{2}|\d+[,\.]\d{2})/g);
+  const matches = line.match(
+    /(\d{1,3}(?:[\s\.]\d{3})*,\d{2}|\d+[,\.]\d{2})/g,
+  );
   if (!matches?.length) return null;
   return parseAmount(matches[matches.length - 1]);
 }
@@ -192,8 +204,8 @@ function parseAmount(value: string): number | null {
   if (!cleaned) return null;
 
   let normalized = cleaned;
-  if (/,/.test(cleaned) && /\./.test(cleaned)) {
-    normalized = cleaned.replace(/\./g, "").replace(",", ".");
+  if (/,/.test(cleaned) && /[\.\s]/.test(cleaned.replace(/,.*$/, ""))) {
+    normalized = cleaned.replace(/[\s\.]/g, "").replace(",", ".");
   } else if (/,/.test(cleaned)) {
     normalized = cleaned.replace(",", ".");
   }
@@ -202,12 +214,19 @@ function parseAmount(value: string): number | null {
   return Number.isFinite(amount) ? amount : null;
 }
 
+function normalizeForMatch(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
 function formatAmount(amount: number): string {
   return amount.toFixed(2);
 }
 
 function guessCategory(name: string): string {
-  const lower = name.toLowerCase();
+  const lower = normalizeForMatch(name);
   if (/telefon|laptop|monitor|tablet|kompjuter|pc\b|ssd|hdd|memorij|kablo|punja/.test(lower)) {
     return "electronics";
   }
