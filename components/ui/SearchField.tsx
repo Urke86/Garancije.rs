@@ -1,7 +1,9 @@
 import { View, TextInput, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Search, X } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   value: string;
@@ -10,6 +12,9 @@ interface Props {
 }
 
 export function SearchField({ value, onChangeText, placeholder = 'Pretraži kupovine...' }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   return (
     <View style={styles.wrap}>
       <Search size={20} color={colors.textMuted} style={styles.icon} />
@@ -41,7 +46,7 @@ export function SearchField({ value, onChangeText, placeholder = 'Pretraži kupo
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'center',

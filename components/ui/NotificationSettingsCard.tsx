@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Bell } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
-import { colors } from '@/lib/colors';
+import { space } from '@/lib/spacing';
 import { fontFamily } from '@/lib/typography';
 import { Card } from '@/components/ui/Card';
 import {
@@ -11,8 +11,14 @@ import {
   OFFSET_OPTIONS,
 } from '@/lib/notification-preferences';
 import { registerForPushNotifications } from '@/lib/notifications';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 export function NotificationSettingsCard() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { user } = useAuth();
   const [enabled, setEnabled] = useState(true);
   const [offsets, setOffsets] = useState<number[]>([30, 14, 7, 1]);
@@ -113,12 +119,12 @@ export function NotificationSettingsCard() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: { marginBottom: 28 },
+const createStyles = (colors: AppColors) => StyleSheet.create({
+  card: {},
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: space.md,
   },
   iconWrap: {
     width: 36,
@@ -140,17 +146,17 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
-  offsets: { marginTop: 16 },
+  offsets: { marginTop: space.lg },
   offsetsLabel: {
     fontSize: 13,
     fontFamily: fontFamily.medium,
     color: colors.textSecondary,
-    marginBottom: 10,
+    marginBottom: space.sm + 2,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: space.sm,
   },
   chip: {
     paddingHorizontal: 12,

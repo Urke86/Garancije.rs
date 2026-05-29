@@ -1,28 +1,31 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  View,
   Text,
   StyleSheet,
   SectionList,
   TouchableOpacity,
   RefreshControl,
   Alert,
+  View,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { layout, space } from '@/lib/spacing';
 import { Bell, Check, Clock } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { StackScreenHeader } from '@/components/ui/StackScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { NotificationPermissionBanner } from '@/components/ui/NotificationPermissionBanner';
-import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { useScrollInsets } from '@/hooks/useScrollInsets';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useReminderBadge } from '@/hooks/useReminderBadge';
 import { groupRemindersByDate } from '@/lib/reminder-groups';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Reminder {
   id: string;
@@ -37,8 +40,11 @@ interface Reminder {
 }
 
 export default function RemindersScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { user } = useAuth();
-  const { scrollBottomPadding } = useTabBarLayout();
+  const scrollInsets = useScrollInsets();
   const { register } = usePushNotifications();
   const { refresh: refreshBadge } = useReminderBadge();
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -76,10 +82,7 @@ export default function RemindersScreen() {
   };
 
   const dismissReminder = async (id: string) => {
-    await supabase
-      .from('reminders')
-      .update({ is_dismissed: true })
-      .eq('id', id);
+    await supabase.from('reminders').update({ is_dismissed: true }).eq('id', id);
     setReminders((prev) =>
       prev.map((r) => (r.id === id ? { ...r, is_dismissed: true } : r)),
     );
@@ -141,7 +144,9 @@ export default function RemindersScreen() {
         accessibilityRole="button"
         accessibilityLabel={`${item.message}, ${item.receipt_items?.name}`}
         accessibilityHint={
-          showActions ? 'Pritisnite za detalje stavke. Dugi pritisak za odložiti podsetnik.' : undefined
+          showActions
+            ? 'Pritisnite za detalje stavke. Dugi pritisak za odložiti podsetnik.'
+            : undefined
         }
       >
         <Card
@@ -222,7 +227,7 @@ export default function RemindersScreen() {
         )}
         ListHeaderComponent={
           <View style={styles.headerPad}>
-            <ScreenHeader
+            <StackScreenHeader
               title="Podsetnici"
               subtitle={`${pending.length} aktivnih podsetnika`}
             />
@@ -236,7 +241,7 @@ export default function RemindersScreen() {
         }
         contentContainerStyle={[
           styles.list,
-          { paddingBottom: scrollBottomPadding },
+          { paddingBottom: scrollInsets.paddingBottom },
           reminders.length === 0 && styles.listEmpty,
         ]}
         stickySectionHeadersEnabled={false}
@@ -254,31 +259,32 @@ export default function RemindersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  headerPad: { paddingHorizontal: 20 },
+const createStyles = (colors: AppColors) => StyleSheet.create({
+  headerPad: { paddingHorizontal: layout.gutter },
   list: {},
   listEmpty: { flexGrow: 1 },
   hint: {
     fontSize: 12,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
-    marginBottom: 8,
+    marginBottom: space.sm,
+    lineHeight: 18,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: fontFamily.semibold,
     color: colors.textSecondary,
-    marginHorizontal: 20,
-    marginTop: 12,
-    marginBottom: 8,
+    marginHorizontal: layout.gutter,
+    marginTop: space.md,
+    marginBottom: space.sm,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   reminderCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginBottom: 10,
+    marginHorizontal: layout.gutter,
+    marginBottom: layout.stack,
   },
   dismissed: { opacity: 0.55 },
   urgentBorder: {
@@ -288,11 +294,11 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: layout.radius - 4,
     backgroundColor: colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: space.md,
   },
   iconUrgent: { backgroundColor: colors.primary },
   content: { flex: 1 },
@@ -310,13 +316,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
-    marginTop: 4,
+    marginTop: space.xs,
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: space.xs,
+    marginTop: space.xs,
   },
   date: {
     fontSize: 12,
@@ -326,7 +332,7 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: space.sm,
   },
   snoozeButton: {
     width: 36,

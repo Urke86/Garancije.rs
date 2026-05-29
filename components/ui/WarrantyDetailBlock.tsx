@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import {
   formatSerbianDate,
   getWarrantyRemainingInfo,
 } from '@/lib/warranty';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   purchaseDate: string;
@@ -13,6 +15,8 @@ interface Props {
 }
 
 function LabeledRow({ label, value, emphasize }: { label: string; value: string; emphasize?: boolean }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.row}>
       <Text style={styles.label}>{label}</Text>
@@ -28,6 +32,8 @@ export function WarrantyDetailBlock({
   warrantyExpiresAt,
   showCountdownParts = true,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const info = getWarrantyRemainingInfo(warrantyExpiresAt);
   const statusColor =
     info.status === 'expired'
@@ -64,7 +70,7 @@ export function WarrantyDetailBlock({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: {
     gap: 10,
     paddingTop: 4,

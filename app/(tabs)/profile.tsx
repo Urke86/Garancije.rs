@@ -1,12 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { colors } from '@/lib/colors';
+import { useScrollInsets } from '@/hooks/useScrollInsets';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useColors } from '@/contexts/ThemeContext';
+import type { AppColors } from '@/lib/theme';
 import { fontFamily } from '@/lib/typography';
+import { layout, space } from '@/lib/spacing';
 import { router } from 'expo-router';
-import { LogOut, Mail, Trash2 } from 'lucide-react-native';
+import { BellRing, LogOut, Mail } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { ScreenSection } from '@/components/ui/ScreenSection';
+import { NavRow } from '@/components/ui/NavRow';
 import { Card } from '@/components/ui/Card';
 import { BrandWordmark } from '@/components/BrandWordmark';
 import { getUserInitials, getGreetingName } from '@/lib/greeting';
@@ -14,13 +20,17 @@ import { DigitalReceiptFeature } from '@/components/ui/DigitalReceiptFeature';
 import { NotificationSettingsCard } from '@/components/ui/NotificationSettingsCard';
 import { LegalLinks } from '@/components/ui/LegalLinks';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
-import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { ThemeToggleCard } from '@/components/ui/ThemeToggleCard';
+import { useReminderBadge } from '@/hooks/useReminderBadge';
 
 type DeleteDialog = 'closed' | 'step1' | 'step2' | 'error';
 
 export default function ProfileScreen() {
   const { user, signOut, deleteAccount } = useAuth();
-  const { scrollBottomPadding } = useTabBarLayout();
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
+  const scrollInsets = useScrollInsets({ tabBar: true });
+  const { count: reminderBadge } = useReminderBadge();
   const [deleting, setDeleting] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>('closed');
   const [deleteError, setDeleteError] = useState('');
@@ -51,89 +61,99 @@ export default function ProfileScreen() {
     <AppScreen>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: scrollInsets.paddingBottom },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader title="Profil" subtitle="Podešavanja naloga" />
 
-        <Text style={styles.sectionTitle}>Nalog</Text>
-
-        <Card style={styles.profileCard}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{getUserInitials(user)}</Text>
-          </View>
-          <View style={styles.userInfo}>
-            <Text style={styles.displayName}>{displayName}</Text>
-            <View style={styles.emailRow}>
-              <Mail size={16} color={colors.textMuted} />
-              <Text style={styles.email} numberOfLines={1}>
-                {user?.email}
+        <ScreenSection title="Nalog" first>
+          <Card style={styles.profileCard}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getUserInitials(user)}</Text>
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.displayName}>{displayName}</Text>
+              <View style={styles.emailRow}>
+                <Mail size={16} color={colors.textMuted} />
+                <Text style={styles.email} numberOfLines={1}>
+                  {user?.email}
+                </Text>
+              </View>
+              <Text style={styles.memberSince}>
+                Član od{' '}
+                {new Date(user?.created_at || '').toLocaleDateString('sr-RS', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
               </Text>
             </View>
-            <Text style={styles.memberSince}>
-              Član od{' '}
-              {new Date(user?.created_at || '').toLocaleDateString('sr-RS', {
-                month: 'long',
-                year: 'numeric',
-              })}
+          </Card>
+        </ScreenSection>
+
+        <ScreenSection title="Izgled">
+          <ThemeToggleCard />
+        </ScreenSection>
+
+        <ScreenSection title="Podsetnici">
+          <NavRow
+            icon={BellRing}
+            title="Moji podsetnici"
+            subtitle="Aktivni, odloženi i završeni podsetnici garancije"
+            badge={reminderBadge}
+            onPress={() => router.push('/reminders')}
+            accessibilityLabel={
+              reminderBadge > 0
+                ? `Moji podsetnici, ${reminderBadge} aktivnih`
+                : 'Moji podsetnici'
+            }
+          />
+        </ScreenSection>
+
+        <ScreenSection title="Obaveštenja">
+          <NotificationSettingsCard />
+        </ScreenSection>
+
+        <ScreenSection title="O aplikaciji">
+          <Card style={styles.aboutCard} clip>
+            <BrandWordmark size="md" style={styles.wordmark} />
+            <Text style={styles.infoText}>
+              Garancije.rs vam pomaže da digitalizujete fiskalne račune, pratite garancije i nikad
+              ne propustite rok za reklamaciju.
             </Text>
-          </View>
-        </Card>
+            <DigitalReceiptFeature embedded />
+          </Card>
+        </ScreenSection>
 
-        <Text style={styles.sectionTitle}>Obaveštenja</Text>
-        <NotificationSettingsCard />
+        <ScreenSection title="Pravno">
+          <Card style={styles.legalCard}>
+            <Text style={styles.legalIntro}>
+              Informacije o obradi ličnih podataka i uslovima korišćenja aplikacije.
+            </Text>
+            <LegalLinks
+              variant="profile"
+              onDeleteAccount={() => setDeleteDialog('step1')}
+              deleting={deleting}
+            />
+          </Card>
+        </ScreenSection>
 
-        <Text style={styles.sectionTitle}>O aplikaciji</Text>
-        <Card style={styles.aboutCard} clip>
-          <BrandWordmark size="md" style={styles.wordmark} />
-          <Text style={styles.infoText}>
-            Garancije.rs vam pomaže da digitalizujete fiskalne račune, pratite garancije i nikad
-            ne propustite rok za reklamaciju.
-          </Text>
-
-          <DigitalReceiptFeature embedded />
-        </Card>
-
-        <Text style={styles.sectionTitle}>Pravno</Text>
-        <Card style={styles.legalCard}>
-          <Text style={styles.legalIntro}>
-            Informacije o obradi ličnih podataka i uslovima korišćenja aplikacije.
-          </Text>
-          <LegalLinks variant="profile" />
-        </Card>
-
-        <Text style={styles.sectionTitle}>Nalog i bezbednost</Text>
-        <Card style={styles.accountActionsCard}>
-          <TouchableOpacity
-            style={styles.signOutButton}
-            onPress={handleSignOut}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel="Odjavi se"
-          >
-            <LogOut size={20} color={colors.error} />
-            <Text style={styles.signOutText}>Odjavi se</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
-            onPress={() => setDeleteDialog('step1')}
-            activeOpacity={0.85}
-            disabled={deleting}
-            accessibilityRole="button"
-            accessibilityLabel="Obriši nalog"
-          >
-            {deleting ? (
-              <ActivityIndicator size="small" color={colors.error} />
-            ) : (
-              <Trash2 size={20} color={colors.error} />
-            )}
-            <Text style={styles.deleteText}>{deleting ? 'Brisanje…' : 'Obriši nalog'}</Text>
-          </TouchableOpacity>
-          <Text style={styles.deleteHint}>
-            Trajno briše nalog, račune, fotografije i podsetnike sa servera.
-          </Text>
-        </Card>
+        <ScreenSection title="Nalog i bezbednost">
+          <Card style={styles.accountActionsCard}>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Odjavi se"
+            >
+              <LogOut size={20} color={colors.error} />
+              <Text style={styles.signOutText}>Odjavi se</Text>
+            </TouchableOpacity>
+          </Card>
+        </ScreenSection>
       </ScrollView>
 
       <ConfirmModal
@@ -170,26 +190,25 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) =>
+  StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20 },
+  content: { paddingHorizontal: layout.gutter },
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 28,
   },
   accountActionsCard: {
-    marginTop: 4,
-    gap: 12,
+    gap: space.md,
   },
   avatar: {
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: layout.radius,
     backgroundColor: colors.accentLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: space.lg,
   },
   avatarText: {
     fontSize: 18,
@@ -201,9 +220,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontFamily: fontFamily.semibold,
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: space.xs + 2,
   },
-  emailRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  emailRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   email: {
     flex: 1,
     fontSize: 14,
@@ -214,38 +233,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
-    marginTop: 6,
+    marginTop: space.xs + 2,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: fontFamily.semibold,
-    color: colors.text,
-    marginBottom: 12,
-  },
-  aboutCard: { marginBottom: 28 },
-  legalCard: { marginBottom: 20 },
+  aboutCard: {},
+  legalCard: {},
   legalIntro: {
     fontSize: 13,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
     lineHeight: 20,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
-  wordmark: { marginBottom: 12 },
+  wordmark: { marginBottom: space.md },
   infoText: {
     fontSize: 14,
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
     lineHeight: 22,
-    marginBottom: 4,
+    marginBottom: space.xs,
   },
   signOutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    borderRadius: 14,
-    paddingVertical: 14,
+    gap: space.sm,
+    borderRadius: layout.radius - 2,
+    paddingVertical: space.lg - 2,
     borderWidth: 1,
     borderColor: 'rgba(220, 38, 38, 0.35)',
     backgroundColor: colors.surface,
@@ -255,28 +268,4 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semibold,
     color: colors.error,
   },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 14,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.55)',
-    backgroundColor: colors.errorLight,
-  },
-  deleteButtonDisabled: { opacity: 0.7 },
-  deleteText: {
-    fontSize: 15,
-    fontFamily: fontFamily.semibold,
-    color: colors.error,
-  },
-  deleteHint: {
-    fontSize: 12,
-    fontFamily: fontFamily.regular,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-});
+  });

@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 're
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthInput } from '@/components/auth/AuthInput';
@@ -11,8 +10,14 @@ import { AuthPrimaryButton } from '@/components/auth/AuthPrimaryButton';
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner';
 import { establishRecoverySession, translateRecoveryError } from '@/lib/auth/password-reset';
 import { supabase } from '@/lib/supabase';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 export default function ResetPasswordScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { updatePassword } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -174,7 +179,7 @@ export default function ResetPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   centered: {
     flex: 1,
     justifyContent: 'center',

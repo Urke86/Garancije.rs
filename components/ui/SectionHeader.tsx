@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { space } from '@/lib/spacing';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
 
 interface Props {
   title: string;
@@ -9,6 +11,8 @@ interface Props {
 }
 
 export function SectionHeader({ title, actionLabel, onAction }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.row}>
       <Text style={styles.title}>{title}</Text>
@@ -21,12 +25,12 @@ export function SectionHeader({ title, actionLabel, onAction }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: space.md,
   },
   title: {
     fontSize: 17,

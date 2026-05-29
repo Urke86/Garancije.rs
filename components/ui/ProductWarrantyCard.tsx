@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { CATEGORIES } from '@/lib/warranty';
 import { Card } from './Card';
 import { WarrantyStatusBadge } from './WarrantyStatusBadge';
 import { WarrantyDetailBlock } from './WarrantyDetailBlock';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   name: string;
@@ -26,6 +28,9 @@ export function ProductWarrantyCard({
   storeName,
   onPress,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label;
 
   return (
@@ -73,7 +78,7 @@ export function ProductWarrantyCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   card: {
     marginBottom: 10,
     gap: 14,

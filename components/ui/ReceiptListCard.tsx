@@ -1,12 +1,15 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Receipt, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { layout, space } from '@/lib/spacing';
 import { formatSerbianDate } from '@/lib/warranty';
 import { Card } from './Card';
 import { useReceiptImageUri } from '@/hooks/useReceiptImageUri';
 import { ProductWarrantyCard } from './ProductWarrantyCard';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 export interface ReceiptItemPreview {
   id: string;
@@ -35,6 +38,9 @@ export function ReceiptListCard({
   receiptItems,
   onPress,
 }: ReceiptListCardProps) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const items = receiptItems ?? [];
   const { uri: thumbUri, loading: thumbLoading } = useReceiptImageUri(imageUrl);
 
@@ -110,17 +116,17 @@ export function ReceiptListCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   card: {
-    marginBottom: 16,
+    marginBottom: layout.stack,
     padding: 0,
     overflow: 'hidden',
   },
   merchantRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
+    padding: layout.inset,
+    gap: space.md,
   },
   thumbWrap: {
     width: 52,
@@ -161,16 +167,16 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.borderLight,
-    marginHorizontal: 16,
+    marginHorizontal: layout.inset,
   },
   items: {
-    padding: 12,
-    paddingTop: 8,
+    padding: space.md,
+    paddingTop: space.sm,
     gap: 0,
   },
   fallback: {
-    padding: 16,
-    gap: 10,
+    padding: layout.inset,
+    gap: space.sm + 2,
   },
   fallbackTitle: {
     fontSize: 17,

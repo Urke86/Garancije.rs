@@ -7,8 +7,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   title: string;
@@ -29,6 +31,9 @@ export function PrimaryButton({
   icon,
   accessibilityLabel,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const inactive = disabled || loading;
 
   return (
@@ -60,7 +65,7 @@ export function PrimaryButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   touch: { borderRadius: 14, overflow: 'hidden' },
   gradient: {
     minHeight: 52,

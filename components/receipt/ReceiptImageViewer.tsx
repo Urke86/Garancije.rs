@@ -2,8 +2,10 @@ import { Modal, View, StyleSheet, TouchableOpacity, Text, Platform, Image } from
 import { X } from 'lucide-react-native';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   visible: boolean;
@@ -13,6 +15,9 @@ interface Props {
 }
 
 export function ReceiptImageViewer({ visible, imageUri, title, onClose }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -104,7 +109,7 @@ export function ReceiptImageViewer({ visible, imageUri, title, onClose }: Props)
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   root: { flex: 1 },
   backdrop: {
     flex: 1,

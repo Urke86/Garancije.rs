@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Plus, Trash2 } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { CATEGORIES, getDefaultWarrantyMonths } from '@/lib/warranty';
 import type { ReceiptItemInput } from '@/lib/receipt-persistence';
 import { Card } from '@/components/ui/Card';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 export interface ReceiptFormState {
   store_name: string;
@@ -29,6 +31,9 @@ export function ReceiptEditForm({
   onChangeItems,
   highlightItemIndex,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const addItem = () => {
     onChangeItems([
       ...items,
@@ -137,6 +142,9 @@ function Field({
   placeholder?: string;
   keyboardType?: 'default' | 'numeric';
 }) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   return (
     <View style={styles.field}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -152,7 +160,7 @@ function Field({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: { gap: 12 },
   section: { gap: 4 },
   sectionTitle: {

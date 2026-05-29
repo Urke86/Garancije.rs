@@ -3,7 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
-import { colors } from '@/lib/colors';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthInput } from '@/components/auth/AuthInput';
 import { AuthPrimaryButton } from '@/components/auth/AuthPrimaryButton';
@@ -11,8 +10,12 @@ import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { AuthDivider } from '@/components/auth/AuthDivider';
 import { AuthErrorBanner } from '@/components/auth/AuthErrorBanner';
 import { LegalLinks } from '@/components/ui/LegalLinks';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
 
 export default function RegisterScreen() {
+  const styles = useThemedStyles(createStyles);
+
   const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,7 +66,11 @@ export default function RegisterScreen() {
     setGoogleLoading(true);
     setError('');
     const { error: err } = await signInWithGoogle();
-    if (err) setError(err);
+    if (err) {
+      setError(err);
+    } else {
+      router.replace('/(tabs)');
+    }
     setGoogleLoading(false);
   };
 
@@ -143,7 +150,7 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   pendingText: {
     fontSize: 15,
     fontFamily: 'PlusJakartaSans-Regular',

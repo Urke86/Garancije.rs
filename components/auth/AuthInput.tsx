@@ -9,14 +9,18 @@ import {
   Platform,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 interface Props extends TextInputProps {
   label: string;
   secureToggle?: boolean;
 }
 
 export function AuthInput({ label, secureToggle, style, ...props }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const [focused, setFocused] = useState(false);
   const [visible, setVisible] = useState(false);
   const isSecure = secureToggle && !visible;
@@ -58,7 +62,7 @@ export function AuthInput({ label, secureToggle, style, ...props }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: { gap: 6 },
   label: {
     fontSize: 13,

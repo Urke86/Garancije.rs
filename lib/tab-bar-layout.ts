@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import type { EdgeInsets } from 'react-native-safe-area-context';
+import { space } from '@/lib/spacing';
 
 /** Visina reda sa ikonama i labelama (bez safe area). */
 export const TAB_BAR_CONTENT_HEIGHT = 52;
@@ -24,5 +25,5 @@ export function getTabBarHeight(insets: EdgeInsets): number {
 }
 
 export function getScrollBottomPadding(insets: EdgeInsets): number {
-  return getTabBarHeight(insets) + TAB_BAR_FAB_OVERFLOW + 12;
+  return getTabBarHeight(insets) + TAB_BAR_FAB_OVERFLOW + space.md;
 }

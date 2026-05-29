@@ -3,9 +3,8 @@ import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/colors';
 import { getWarrantyStatus } from '@/lib/warranty';
-import { getTimeGreeting, getGreetingName, getUserInitials } from '@/lib/greeting';
+import { getTimeGreeting, getGreetingName } from '@/lib/greeting';
 import { Camera } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -15,8 +14,12 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { ExpiringItemCard } from '@/components/ui/ExpiringItemCard';
 import { ReceiptListCard } from '@/components/ui/ReceiptListCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { useScrollInsets } from '@/hooks/useScrollInsets';
+import { layout, space } from '@/lib/spacing';
 import { getSupabaseErrorMessage } from '@/lib/supabase-errors';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface WarrantyItem {
   id: string;
@@ -43,8 +46,11 @@ interface RecentReceipt {
 }
 
 export default function HomeScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { user } = useAuth();
-  const { scrollBottomPadding } = useTabBarLayout();
+  const scrollInsets = useScrollInsets({ tabBar: true });
   const [items, setItems] = useState<WarrantyItem[]>([]);
   const [recentReceipts, setRecentReceipts] = useState<RecentReceipt[]>([]);
   const [receiptCount, setReceiptCount] = useState(0);
@@ -125,7 +131,10 @@ export default function HomeScreen() {
     <AppScreen>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: scrollInsets.paddingBottom },
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
@@ -135,8 +144,6 @@ export default function HomeScreen() {
           greeting={greetingLine}
           title="Vaš garancijski novčanik"
           subtitle="Sve garancije na jednom mestu"
-          avatarLabel={getUserInitials(user)}
-          onAvatarPress={() => router.push('/(tabs)/profile')}
         />
 
         {loading ? (
@@ -224,10 +231,10 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20 },
-  loader: { marginVertical: 40 },
-  scanCta: { marginBottom: 28 },
-  section: { marginBottom: 8 },
+  content: { paddingHorizontal: layout.gutter },
+  loader: { marginVertical: space.xxxl },
+  scanCta: { marginBottom: layout.section },
+  section: { marginBottom: space.sm },
 });

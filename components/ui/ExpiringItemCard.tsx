@@ -1,10 +1,13 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { TriangleAlert as AlertTriangle, ChevronRight } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { layout, space } from '@/lib/spacing';
 import { Card } from './Card';
 import { WarrantyStatusBadge } from './WarrantyStatusBadge';
 import { WarrantyDetailBlock } from './WarrantyDetailBlock';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   name: string;
@@ -21,6 +24,9 @@ export function ExpiringItemCard({
   warrantyExpiresAt,
   onPress,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
       <Card style={styles.card}>
@@ -54,16 +60,16 @@ export function ExpiringItemCard({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   card: {
-    marginBottom: 10,
+    marginBottom: layout.stack,
     borderColor: 'rgba(217, 119, 6, 0.28)',
-    gap: 12,
+    gap: space.md,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
+    gap: space.sm + 2,
   },
   iconWrap: {
     width: 36,

@@ -14,22 +14,28 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { Camera, Image as ImageIcon, Scan } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
-import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { useScrollInsets } from '@/hooks/useScrollInsets';
+import { layout, space } from '@/lib/spacing';
 import { emptyOcrResult, hasRecognizedFields, invokeReceiptOcr } from '@/lib/ocr-receipt';
 import { prepareImageForOcr } from '@/lib/ocr-image-preprocess';
 import { savePendingOcr } from '@/lib/ocr-pending';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 type ScanPhase = 'idle' | 'upload' | 'ocr';
 
 export default function ScanScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { user } = useAuth();
-  const { scrollBottomPadding } = useTabBarLayout();
+  const scrollInsets = useScrollInsets({ tabBar: true });
   const [image, setImage] = useState<string | null>(null);
   const [phase, setPhase] = useState<ScanPhase>('idle');
   const [error, setError] = useState('');
@@ -128,7 +134,7 @@ export default function ScanScreen() {
     <AppScreen>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollInsets.paddingBottom }]}
         showsVerticalScrollIndicator={false}
       >
         <ScreenHeader
@@ -221,11 +227,11 @@ function decode(base64: string): Uint8Array {
   return bytes;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20 },
+  content: { paddingHorizontal: layout.gutter },
   tipsCard: {
-    marginBottom: 14,
+    marginBottom: space.lg - 2,
     backgroundColor: colors.accentLight,
     borderWidth: 1,
     borderColor: 'rgba(0, 184, 217, 0.2)',
@@ -244,9 +250,9 @@ const styles = StyleSheet.create({
   },
   errorBanner: {
     backgroundColor: colors.errorLight,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    borderRadius: layout.radius - 4,
+    padding: space.lg - 2,
+    marginBottom: space.lg,
     borderWidth: 1,
     borderColor: 'rgba(220, 38, 38, 0.2)',
   },
@@ -256,7 +262,7 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.medium,
     lineHeight: 20,
   },
-  actions: { gap: 14, marginTop: 8 },
+  actions: { gap: space.lg - 2, marginTop: space.sm },
   actionCard: { alignItems: 'center' },
   actionIcon: {
     width: 72,

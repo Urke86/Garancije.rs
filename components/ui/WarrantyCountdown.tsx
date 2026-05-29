@@ -1,10 +1,12 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import {
   getWarrantyRemainingInfo,
   type WarrantyRemainingParts,
 } from '@/lib/warranty';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   warrantyExpiresAt: string;
@@ -12,6 +14,8 @@ interface Props {
 }
 
 function PartBlock({ value, unit }: { value: number; unit: string }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.part}>
       <Text style={styles.partValue}>{value}</Text>
@@ -21,6 +25,8 @@ function PartBlock({ value, unit }: { value: number; unit: string }) {
 }
 
 function PartsRow({ parts, compact }: { parts: WarrantyRemainingParts; compact?: boolean }) {
+  const styles = useThemedStyles(createStyles);
+
   const units =
     parts.years > 0
       ? [
@@ -45,6 +51,8 @@ function PartsRow({ parts, compact }: { parts: WarrantyRemainingParts; compact?:
 }
 
 export function WarrantyCountdown({ warrantyExpiresAt, compact }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
   const info = getWarrantyRemainingInfo(warrantyExpiresAt);
   const statusColor =
     info.status === 'expired'
@@ -64,7 +72,7 @@ export function WarrantyCountdown({ warrantyExpiresAt, compact }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: { gap: 6 },
   remaining: {
     fontSize: 16,

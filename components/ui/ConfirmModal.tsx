@@ -7,8 +7,10 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 export interface ConfirmModalProps {
   visible: boolean;
@@ -36,6 +38,9 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   if (!visible) return null;
 
   return (
@@ -102,7 +107,7 @@ export function ConfirmModal({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: 'center',

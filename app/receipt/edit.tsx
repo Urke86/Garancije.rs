@@ -9,8 +9,8 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { layout, space } from '@/lib/spacing';
 import { getDefaultWarrantyMonths } from '@/lib/warranty';
 import { ArrowLeft, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
@@ -26,6 +26,9 @@ import {
 } from '@/lib/ocr-receipt';
 import { clearPendingOcr, loadPendingOcr } from '@/lib/ocr-pending';
 import { loadReceiptImageBase64 } from '@/lib/receipt-image-base64';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 function mapOcrToForm(ocrData: OcrReceiptResult): {
   form: ReceiptFormState;
@@ -52,6 +55,9 @@ function mapOcrToForm(ocrData: OcrReceiptResult): {
 }
 
 export default function EditReceiptScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { user } = useAuth();
   const params = useLocalSearchParams<{
     image_url: string;
@@ -302,17 +308,17 @@ export default function EditReceiptScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 48 },
+  content: { paddingHorizontal: layout.gutter, paddingBottom: layout.scrollBottom + space.lg },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingTop: 8,
-    paddingBottom: 16,
+    gap: space.md,
+    paddingTop: space.sm,
+    paddingBottom: space.lg,
   },
-  backBtn: { padding: 4 },
+  backBtn: { padding: space.xs },
   headerText: { flex: 1 },
   screenTitle: {
     fontSize: 22,
@@ -329,10 +335,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 10,
-    marginBottom: 12,
-    borderRadius: 10,
+    gap: space.sm,
+    paddingVertical: space.sm + 2,
+    marginBottom: space.md,
+    borderRadius: layout.radius - 6,
     borderWidth: 1,
     borderColor: 'rgba(6, 43, 95, 0.15)',
     backgroundColor: colors.surface,
@@ -345,11 +351,11 @@ const styles = StyleSheet.create({
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: space.sm + 2,
     backgroundColor: colors.accentLight,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: layout.radius - 4,
+    padding: space.md,
+    marginBottom: space.md,
     borderWidth: 1,
     borderColor: 'rgba(0, 184, 217, 0.25)',
   },
@@ -362,9 +368,9 @@ const styles = StyleSheet.create({
   },
   warningBanner: {
     backgroundColor: colors.errorLight,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: layout.radius - 4,
+    padding: space.md,
+    marginBottom: space.md,
     borderWidth: 1,
     borderColor: 'rgba(220, 38, 38, 0.2)',
   },
@@ -375,8 +381,8 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
   rawTextSection: {
-    marginBottom: 12,
-    borderRadius: 12,
+    marginBottom: space.md,
+    borderRadius: layout.radius - 4,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
@@ -408,9 +414,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: fontFamily.regular,
     backgroundColor: colors.errorLight,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 12,
+    padding: space.md,
+    borderRadius: layout.radius - 6,
+    marginBottom: space.md,
   },
-  saveBtn: { marginTop: 8 },
+  saveBtn: { marginTop: space.sm },
 });

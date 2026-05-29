@@ -6,8 +6,9 @@ import {
   ViewStyle,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 interface Props {
   title: string;
   onPress: () => void;
@@ -25,6 +26,9 @@ export function AuthPrimaryButton({
   style,
   accessibilityLabel,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const inactive = disabled || loading;
 
   return (
@@ -53,7 +57,7 @@ export function AuthPrimaryButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   touch: { marginTop: 8, borderRadius: 14, overflow: 'hidden' },
   gradient: {
     minHeight: 56,

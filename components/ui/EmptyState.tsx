@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, Image, useWindowDimensions, type ViewStyle } from 'react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { layout, space } from '@/lib/spacing';
 import { officialLogo, getBrandLogoSize } from '@/lib/branding';
 import { BrandWordmark } from '@/components/BrandWordmark';
 import { PrimaryButton } from './PrimaryButton';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
 
 interface Props {
   title: string;
@@ -22,6 +24,8 @@ export function EmptyState({
   showBrand = false,
   style,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   const { width } = useWindowDimensions();
   const logo = getBrandLogoSize(width, false);
   const mascotW = Math.min(Math.round(logo.width * 0.45), 180);
@@ -48,15 +52,15 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: {
     alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 8,
+    paddingVertical: space.xxxl,
+    paddingHorizontal: space.sm,
   },
   brand: {
     alignItems: 'flex-start',
-    marginBottom: 20,
+    marginBottom: layout.headerGap - 4,
     alignSelf: 'stretch',
   },
   title: {
@@ -70,9 +74,9 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     color: colors.textMuted,
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: space.sm,
     lineHeight: 22,
     maxWidth: 300,
   },
-  cta: { marginTop: 24, alignSelf: 'stretch' },
+  cta: { marginTop: layout.section, alignSelf: 'stretch' },
 });

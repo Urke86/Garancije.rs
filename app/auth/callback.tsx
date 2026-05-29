@@ -3,9 +3,13 @@ import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-nativ
 import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { handleWebOAuthCallback } from '@/lib/auth/google';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 export default function AuthCallbackScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const [message, setMessage] = useState('Završavamo prijavu...');
 
   useEffect(() => {
@@ -62,7 +66,7 @@ export default function AuthCallbackScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',

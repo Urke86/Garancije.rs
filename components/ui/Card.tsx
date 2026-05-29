@@ -1,17 +1,19 @@
 import { View, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import type { ReactNode } from 'react';
-import { colors } from '@/lib/colors';
-import { cardShadow } from './cardStyles';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { getCardShadow } from './cardStyles';
+import type { AppColors } from '@/lib/theme';
 
 interface Props {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   padded?: boolean;
-  /** Skraćuje sadržaj na zaobljene ivice (npr. ugradjeni feature blok). */
   clip?: boolean;
 }
 
 export function Card({ children, style, padded = true, clip = false }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={[styles.card, clip && styles.clip, padded && styles.padded, style]}>
       {children}
@@ -19,18 +21,19 @@ export function Card({ children, style, padded = true, clip = false }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...cardShadow,
-  },
-  clip: {
-    overflow: 'hidden',
-  },
-  padded: {
-    padding: 16,
-  },
-});
+const createStyles = (colors: AppColors) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...getCardShadow(colors),
+    },
+    clip: {
+      overflow: 'hidden',
+    },
+    padded: {
+      padding: 16,
+    },
+  });

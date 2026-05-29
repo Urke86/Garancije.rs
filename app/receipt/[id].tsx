@@ -10,7 +10,6 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { formatSerbianDate } from '@/lib/warranty';
 import { ArrowLeft, Trash2, Pencil, X } from 'lucide-react-native';
@@ -26,6 +25,9 @@ import {
 } from '@/lib/receipt-persistence';
 import { getReceiptStoragePath } from '@/lib/receipt-image';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface ReceiptRecord {
   id: string;
@@ -47,6 +49,9 @@ interface ReceiptRecord {
 }
 
 export default function ReceiptDetailScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const { user } = useAuth();
   const [receipt, setReceipt] = useState<ReceiptRecord | null>(null);
@@ -348,6 +353,8 @@ function SummaryRow({
   value: string;
   muted?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.summaryRow}>
       <Text style={styles.summaryLabel}>{label}</Text>
@@ -356,7 +363,7 @@ function SummaryRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24 },

@@ -11,7 +11,6 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import {
   CATEGORIES,
@@ -28,6 +27,9 @@ import { WarrantyStatusBadge } from '@/components/ui/WarrantyStatusBadge';
 import { WarrantyDetailBlock } from '@/components/ui/WarrantyDetailBlock';
 import { ReceiptPhotoHero } from '@/components/receipt/ReceiptPhotoHero';
 import { updateReceiptItem } from '@/lib/receipt-persistence';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface ItemDetail {
   id: string;
@@ -48,6 +50,9 @@ interface ItemDetail {
 }
 
 export default function ReceiptItemDetailScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
   const [item, setItem] = useState<ItemDetail | null>(null);
@@ -320,6 +325,8 @@ function DetailRow({
   muted?: boolean;
   emphasize?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
@@ -336,7 +343,7 @@ function DetailRow({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },

@@ -11,7 +11,6 @@ import {
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { getWarrantyStatus } from '@/lib/warranty';
 import { filterReceiptsByQuery } from '@/lib/receipt-search';
@@ -20,8 +19,12 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SearchField } from '@/components/ui/SearchField';
 import { ReceiptListCard, type ReceiptItemPreview } from '@/components/ui/ReceiptListCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { useTabBarLayout } from '@/hooks/useTabBarLayout';
+import { useScrollInsets } from '@/hooks/useScrollInsets';
+import { layout, space } from '@/lib/spacing';
 import { getSupabaseErrorMessage } from '@/lib/supabase-errors';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface ReceiptWithItems {
   id: string;
@@ -44,8 +47,11 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 export default function TimelineScreen() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { user } = useAuth();
-  const { scrollBottomPadding } = useTabBarLayout();
+  const scrollInsets = useScrollInsets({ tabBar: true });
   const [receipts, setReceipts] = useState<ReceiptWithItems[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -211,7 +217,7 @@ export default function TimelineScreen() {
           )}
           contentContainerStyle={[
             styles.list,
-            { paddingBottom: scrollBottomPadding },
+            { paddingBottom: scrollInsets.paddingBottom },
             displayed.length === 0 && styles.listEmpty,
           ]}
           refreshControl={
@@ -231,14 +237,14 @@ export default function TimelineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   flex: { flex: 1 },
-  headerPad: { paddingHorizontal: 20, paddingTop: 4 },
+  headerPad: { paddingHorizontal: layout.gutter, paddingTop: space.xs },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 8,
+    gap: space.sm,
+    marginBottom: space.sm,
   },
   chip: {
     paddingHorizontal: 14,
@@ -264,9 +270,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: fontFamily.medium,
     color: colors.textMuted,
-    marginBottom: 8,
+    marginBottom: space.sm,
   },
-  list: { paddingHorizontal: 20 },
+  list: { paddingHorizontal: layout.gutter },
   listEmpty: { flexGrow: 1 },
-  loader: { marginVertical: 32 },
+  loader: { marginVertical: space.xxxl },
 });

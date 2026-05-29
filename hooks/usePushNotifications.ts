@@ -45,7 +45,7 @@ export function usePushNotifications() {
       if (receiptItemId) {
         router.push(`/receipt/item/${receiptItemId}`);
       } else {
-        router.push('/(tabs)/reminders');
+        router.push('/reminders');
       }
     });
     return () => sub.remove();

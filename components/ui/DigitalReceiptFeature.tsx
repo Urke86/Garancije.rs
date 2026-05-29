@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldCheck } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { fadedReceiptIllustration } from '@/lib/branding';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 const WIDE_LAYOUT = 520;
 
@@ -13,6 +15,9 @@ interface Props {
 }
 
 export function DigitalReceiptFeature({ embedded = false }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_LAYOUT;
 
@@ -64,6 +69,8 @@ export function DigitalReceiptFeature({ embedded = false }: Props) {
 }
 
 function Highlight({ label }: { label: string }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.highlight}>
       <View style={styles.dot} />
@@ -72,7 +79,7 @@ function Highlight({ label }: { label: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: {
     marginTop: 20,
     borderRadius: 16,

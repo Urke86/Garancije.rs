@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
+import { layout, space } from '@/lib/spacing';
 import { Card } from './Card';
 import { StatPill } from './StatPill';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
 
 interface Props {
   receiptCount: number;
@@ -19,6 +21,8 @@ export function WarrantySummaryCard({
   expiring,
   expired,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   const showReceiptsOnly = receiptCount > 0 && total === 0;
   const displayNumber = showReceiptsOnly ? receiptCount : total;
 
@@ -58,8 +62,8 @@ export function WarrantySummaryCard({
   );
 }
 
-const styles = StyleSheet.create({
-  card: { marginBottom: 20 },
+const createStyles = (colors: AppColors) => StyleSheet.create({
+  card: { marginBottom: layout.headerGap - 4 },
   bigNumber: {
     fontSize: 44,
     fontFamily: fontFamily.extrabold,
@@ -81,7 +85,7 @@ const styles = StyleSheet.create({
   },
   pills: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
+    gap: space.sm,
+    marginTop: space.lg,
   },
 });

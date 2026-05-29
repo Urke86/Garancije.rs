@@ -1,10 +1,10 @@
 import { View, Text, StyleSheet, Platform, type TextStyle, type ViewStyle, type StyleProp } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
-
-const TLD_GRADIENT = [colors.wordmarkGradientStart, colors.wordmarkGradientEnd] as const;
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 type Size = 'md' | 'lg' | 'xl';
 
@@ -20,6 +20,10 @@ interface Props {
 }
 
 export function BrandWordmark({ size = 'lg', style }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const tldGradient = [colors.wordmarkGradientStart, colors.wordmarkGradientEnd] as const;
+
   const { main, tld } = SIZES[size];
 
   const base: TextStyle = {
@@ -58,19 +62,27 @@ export function BrandWordmark({ size = 'lg', style }: Props) {
       accessibilityLabel="Garancije.rs"
     >
       <Text style={garancijeStyle}>Garancije</Text>
-      <WordmarkTld style={tldStyle} />
+      <WordmarkTld style={tldStyle} gradient={tldGradient} />
     </View>
   );
 }
 
-function WordmarkTld({ style }: { style: TextStyle }) {
+function WordmarkTld({
+  style,
+  gradient,
+}: {
+  style: TextStyle;
+  gradient: readonly [string, string];
+}) {
+  const styles = useThemedStyles(createWordmarkTldStyles);
+
   if (Platform.OS === 'web') {
     return (
       <Text
         style={[
           style,
           {
-            backgroundImage: `linear-gradient(135deg, ${TLD_GRADIENT[0]} 0%, ${TLD_GRADIENT[1]} 100%)`,
+            backgroundImage: `linear-gradient(135deg, ${gradient[0]} 0%, ${gradient[1]} 100%)`,
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
             color: 'transparent',
@@ -88,7 +100,7 @@ function WordmarkTld({ style }: { style: TextStyle }) {
       maskElement={<Text style={[style, styles.maskFill]}>.rs</Text>}
     >
       <LinearGradient
-        colors={[...TLD_GRADIENT]}
+        colors={[...gradient]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
@@ -98,11 +110,14 @@ function WordmarkTld({ style }: { style: TextStyle }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (_colors: AppColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
+});
+
+const createWordmarkTldStyles = (_colors: AppColors) => StyleSheet.create({
   maskFill: {
     color: '#000',
   },

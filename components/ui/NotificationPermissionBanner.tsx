@@ -1,15 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Bell, ChevronRight } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { getPushPermissionStatus, requestPushPermissions } from '@/lib/notifications';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   onPermissionGranted?: () => void;
 }
 
 export function NotificationPermissionBanner({ onPermissionGranted }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const [status, setStatus] = useState<'granted' | 'denied' | 'undetermined'>('undetermined');
   const [loading, setLoading] = useState(false);
 
@@ -55,7 +60,7 @@ export function NotificationPermissionBanner({ onPermissionGranted }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

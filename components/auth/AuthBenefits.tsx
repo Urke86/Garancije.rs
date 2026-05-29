@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Camera, ShieldCheck, Bell } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 const BENEFITS = [
   { Icon: Camera, text: 'Skeniraj fiskalni račun za sekundu' },
   { Icon: ShieldCheck, text: 'Prati garanciju po proizvodu' },
@@ -9,6 +10,9 @@ const BENEFITS = [
 ] as const;
 
 export function AuthBenefits() {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   return (
     <View style={styles.list}>
       {BENEFITS.map(({ Icon, text }) => (
@@ -23,7 +27,7 @@ export function AuthBenefits() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   list: {
     gap: 10,
     marginTop: 20,

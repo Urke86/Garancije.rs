@@ -47,19 +47,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="reminders"
-        options={{
-          title: 'Podsetnici',
-          tabBarAccessibilityLabel:
-            reminderBadge > 0 ? `Podsetnici, ${reminderBadge} nepročitanih` : 'Podsetnici',
-          tabBarBadge: reminderBadge > 0 ? reminderBadge : undefined,
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: 'Profil',
-          tabBarAccessibilityLabel: 'Profil',
+          tabBarAccessibilityLabel:
+            reminderBadge > 0 ? `Profil, ${reminderBadge} podsetnika` : 'Profil',
+          tabBarBadge: reminderBadge > 0 ? reminderBadge : undefined,
         }}
       />
     </Tabs>

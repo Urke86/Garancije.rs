@@ -1,7 +1,8 @@
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 interface Props {
   onPress: () => void;
   loading?: boolean;
@@ -13,6 +14,9 @@ export function GoogleSignInButton({
   loading,
   label = 'Nastavi sa Google nalogom',
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   return (
     <TouchableOpacity
       style={[styles.button, loading && styles.buttonDisabled]}
@@ -37,7 +41,7 @@ export function GoogleSignInButton({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',

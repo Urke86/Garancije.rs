@@ -7,8 +7,9 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import type { LucideIcon } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 const ICON_SIZE = 26;
 const PILL_SIZE = 44;
 
@@ -19,6 +20,9 @@ interface Props {
 }
 
 export function TabBarIcon({ focused, Icon, color }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const scale = useSharedValue(focused ? 1 : 0.92);
 
   useEffect(() => {
@@ -62,7 +66,7 @@ export function TabBarIcon({ focused, Icon, color }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',

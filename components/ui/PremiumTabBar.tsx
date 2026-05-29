@@ -2,21 +2,25 @@ import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { House, Receipt, BellRing, UserRound } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
+import { House, Receipt, UserRound } from 'lucide-react-native';
 import { fontFamily } from '@/lib/typography';
 import { useTabBarLayout } from '@/hooks/useTabBarLayout';
 import { TabBarIcon } from '@/components/ui/TabBarIcon';
 import { ScanTabButton } from '@/components/ui/ScanTabButton';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import { useTheme } from '@/contexts/ThemeContext';
+import type { AppColors } from '@/lib/theme';
 
 const TAB_ICONS: Record<string, typeof House> = {
   index: House,
   timeline: Receipt,
-  reminders: BellRing,
   profile: UserRound,
 };
 
 export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const styles = useThemedStyles(createStyles);
+  const { isDark } = useTheme();
+
   const { bottomInset, height, topPadding } = useTabBarLayout();
 
   const onTabPress = (routeName: string, routeKey: string, isFocused: boolean) => {
@@ -38,7 +42,7 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
     <View style={[styles.container, { height, paddingBottom: bottomInset, paddingTop: topPadding }]}>
       <View style={StyleSheet.absoluteFill}>
         {Platform.OS === 'ios' ? (
-          <BlurView intensity={72} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={72} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
         ) : null}
         <View style={[StyleSheet.absoluteFill, styles.glassOverlay]} />
       </View>
@@ -57,6 +61,7 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
                   onPress={() => onTabPress(route.name, route.key, isFocused)}
                   accessibilityState={{ selected: isFocused }}
                   bottomInset={bottomInset}
+                  children={null}
                 />
               </View>
             );
@@ -79,7 +84,7 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
             >
               <View style={styles.iconStack}>
                 <TabBarIcon focused={isFocused} Icon={Icon} />
-                {badge != null && badge !== false ? (
+                {badge != null ? (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>
                       {typeof badge === 'number' && badge > 9 ? '9+' : String(badge)}
@@ -98,7 +103,7 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   container: {
     borderTopWidth: 1,
     borderTopColor: colors.tabBarBorder,

@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { ThemeAppearanceBootstrap } from '@/components/ThemeAppearanceBootstrap';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PushNotificationsBootstrap } from '@/components/PushNotificationsBootstrap';
 import { PasswordRecoveryBootstrap } from '@/components/PasswordRecoveryBootstrap';
@@ -51,19 +52,23 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <PushNotificationsBootstrap />
-        <PasswordRecoveryBootstrap />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="receipt" />
-          <Stack.Screen name="auth/callback" />
-          <Stack.Screen name="auth/reset-password" />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="dark" />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ThemeAppearanceBootstrap />
+          <PushNotificationsBootstrap />
+          <PasswordRecoveryBootstrap />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="receipt" />
+            <Stack.Screen name="reminders" />
+            <Stack.Screen name="auth/callback" />
+            <Stack.Screen name="auth/reset-password" />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }

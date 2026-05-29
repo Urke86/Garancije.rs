@@ -1,7 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { getWarrantyStatus, getWarrantyStatusLabel } from '@/lib/warranty';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   warrantyExpiresAt: string;
@@ -9,6 +11,9 @@ interface Props {
 }
 
 export function WarrantyStatusBadge({ warrantyExpiresAt, size = 'md' }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const status = getWarrantyStatus(warrantyExpiresAt);
   const label = getWarrantyStatusLabel(status);
   const palette = {
@@ -33,7 +38,7 @@ export function WarrantyStatusBadge({ warrantyExpiresAt, size = 'md' }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { Eye, FileDown, Share2 } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { useReceiptImageUri } from '@/hooks/useReceiptImageUri';
 import { downloadReceiptPhotoAsPdf, shareReceiptPhoto } from '@/lib/receipt-photo-actions';
 import { ReceiptImageViewer } from './ReceiptImageViewer';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   imageStored: string | null | undefined;
@@ -13,6 +15,9 @@ interface Props {
 }
 
 export function ReceiptPhotoActions({ imageStored, productName }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { uri, loading } = useReceiptImageUri(imageStored);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [busy, setBusy] = useState<'pdf' | 'share' | null>(null);
@@ -105,7 +110,7 @@ export function ReceiptPhotoActions({ imageStored, productName }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: { marginBottom: 20 },
   sectionTitle: {
     fontSize: 15,

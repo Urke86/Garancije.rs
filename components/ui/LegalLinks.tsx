@@ -1,8 +1,10 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { FileText, Shield, Mail } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { FileText, Shield, Mail, Trash2 } from 'lucide-react-native';
 import { fontFamily } from '@/lib/typography';
 import { openPrivacyContact, openPrivacyPolicy, openTerms } from '@/lib/legal-links';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 type Variant = 'profile' | 'consent';
 
@@ -10,11 +12,20 @@ interface Props {
   variant?: Variant;
   /** Tekst pre linkova; podrazumevano poruka za registraciju. */
   consentIntro?: string;
+  onDeleteAccount?: () => void;
+  deleting?: boolean;
 }
 
 const DEFAULT_CONSENT_INTRO = 'Registracijom prihvatate';
 
-export function LegalLinks({ variant = 'profile', consentIntro = DEFAULT_CONSENT_INTRO }: Props) {
+export function LegalLinks({
+  variant = 'profile',
+  consentIntro = DEFAULT_CONSENT_INTRO,
+  onDeleteAccount,
+  deleting = false,
+}: Props) {
+  const styles = useThemedStyles(createStyles);
+
   if (variant === 'consent') {
     return (
       <Text style={styles.consent}>
@@ -35,7 +46,17 @@ export function LegalLinks({ variant = 'profile', consentIntro = DEFAULT_CONSENT
     <View style={styles.list}>
       <LegalRow icon={Shield} label="Politika privatnosti" onPress={openPrivacyPolicy} />
       <LegalRow icon={FileText} label="Uslovi korišćenja" onPress={openTerms} />
-      <LegalRow icon={Mail} label="Kontakt za privatnost" onPress={openPrivacyContact} isLast />
+      <LegalRow icon={Mail} label="Kontakt za privatnost" onPress={openPrivacyContact} isLast={!onDeleteAccount} />
+      {onDeleteAccount ? (
+        <LegalRow
+          icon={Trash2}
+          label={deleting ? 'Brisanje…' : 'Obriši nalog'}
+          onPress={onDeleteAccount}
+          destructive
+          disabled={deleting}
+          isLast
+        />
+      ) : null}
     </View>
   );
 }
@@ -45,27 +66,40 @@ function LegalRow({
   label,
   onPress,
   isLast,
+  destructive,
+  disabled,
 }: {
   icon: typeof Shield;
   label: string;
   onPress: () => void;
   isLast?: boolean;
+  destructive?: boolean;
+  disabled?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+  const tint = destructive ? colors.error : colors.primary;
+
   return (
     <TouchableOpacity
-      style={[styles.row, isLast && styles.rowLast]}
+      style={[styles.row, isLast && styles.rowLast, disabled && styles.rowDisabled]}
       onPress={onPress}
       activeOpacity={0.85}
-      accessibilityRole="link"
+      disabled={disabled}
+      accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Icon size={18} color={colors.primary} />
-      <Text style={styles.rowLabel}>{label}</Text>
+      {disabled ? (
+        <ActivityIndicator size="small" color={tint} />
+      ) : (
+        <Icon size={18} color={tint} />
+      )}
+      <Text style={[styles.rowLabel, destructive && styles.rowLabelDestructive]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   list: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -83,11 +117,17 @@ const styles = StyleSheet.create({
   rowLast: {
     borderBottomWidth: 0,
   },
+  rowDisabled: {
+    opacity: 0.7,
+  },
   rowLabel: {
     flex: 1,
     fontSize: 14,
     fontFamily: fontFamily.medium,
     color: colors.primary,
+  },
+  rowLabelDestructive: {
+    color: colors.error,
   },
   consent: {
     marginTop: 16,

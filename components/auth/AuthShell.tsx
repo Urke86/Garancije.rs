@@ -15,10 +15,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { ArrowLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
-import { colors } from '@/lib/colors';
 import { officialLogo, getBrandLogoSize } from '@/lib/branding';
 import { BrandWordmark } from '@/components/BrandWordmark';
 import { AuthBenefits } from './AuthBenefits';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   children: ReactNode;
@@ -30,6 +32,9 @@ interface Props {
 const WIDE_BREAKPOINT = 768;
 
 export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isWide = width >= WIDE_BREAKPOINT && Platform.OS === 'web';
@@ -98,7 +103,7 @@ export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props
   return (
     <View style={styles.root}>
       <LinearGradient
-        colors={['rgba(0, 184, 217, 0.08)', colors.background, colors.surface]}
+        colors={[colors.authGradientTop, colors.authGradientMid, colors.authGradientBottom]}
         locations={[0, 0.45, 1]}
         style={StyleSheet.absoluteFill}
       />
@@ -136,7 +141,7 @@ export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   scroll: { flexGrow: 1, paddingHorizontal: 20 },

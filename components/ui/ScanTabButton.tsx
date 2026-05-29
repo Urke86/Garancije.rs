@@ -11,8 +11,10 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Receipt, Plus } from 'lucide-react-native';
-import { colors } from '@/lib/colors';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props extends BottomTabBarButtonProps {
   bottomInset?: number;
@@ -21,6 +23,9 @@ interface Props extends BottomTabBarButtonProps {
 const FAB_SIZE = 64;
 
 export function ScanTabButton({ onPress, accessibilityState, bottomInset = 0 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const focused = accessibilityState?.selected;
   const lift = bottomInset > 0 ? -22 : -20;
   const scale = useSharedValue(1);
@@ -91,7 +96,7 @@ export function ScanTabButton({ onPress, accessibilityState, bottomInset = 0 }: 
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   wrap: {
     justifyContent: 'center',
     alignItems: 'center',

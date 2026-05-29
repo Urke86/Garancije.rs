@@ -1,7 +1,9 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
 export function AuthDivider() {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.row}>
       <View style={styles.line} />
@@ -11,7 +13,7 @@ export function AuthDivider() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',

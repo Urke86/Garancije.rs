@@ -1,6 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { colors } from '@/lib/colors';
+import { layout, space } from '@/lib/spacing';
 import { fontFamily } from '@/lib/typography';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
 
 interface Props {
   title: string;
@@ -11,6 +13,8 @@ interface Props {
 }
 
 export function ScreenHeader({ title, subtitle, greeting, onAvatarPress, avatarLabel }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.row}>
       <View style={styles.textCol}>
@@ -27,13 +31,13 @@ export function ScreenHeader({ title, subtitle, greeting, onAvatarPress, avatarL
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    gap: 12,
+    marginBottom: layout.headerGap,
+    gap: space.md,
   },
   textCol: { flex: 1 },
   greeting: {

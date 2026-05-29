@@ -2,12 +2,14 @@ import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Ale
 import type { ReactNode } from 'react';
 import { Eye, FileDown, Share2, Receipt as ReceiptIcon } from 'lucide-react-native';
 import { useState } from 'react';
-import { colors } from '@/lib/colors';
 import { fontFamily } from '@/lib/typography';
 import { useReceiptImageUri } from '@/hooks/useReceiptImageUri';
 import { downloadReceiptPhotoAsPdf, shareReceiptPhoto } from '@/lib/receipt-photo-actions';
 import { ReceiptImageViewer } from './ReceiptImageViewer';
 import { Card } from '@/components/ui/Card';
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
+import { useColors } from '@/contexts/ThemeContext';
 
 interface Props {
   imageStored: string | null | undefined;
@@ -15,6 +17,9 @@ interface Props {
 }
 
 export function ReceiptPhotoHero({ imageStored, productName }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const colors = useColors();
+
   const { uri, loading } = useReceiptImageUri(imageStored);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [busy, setBusy] = useState<'pdf' | 'share' | null>(null);
@@ -81,7 +86,7 @@ export function ReceiptPhotoHero({ imageStored, productName }: Props) {
         />
         <ActionChip
           icon={busy === 'pdf' ? <ActivityIndicator size="small" color={colors.primary} /> : <FileDown size={18} color={colors.primary} />}
-          label="PDF"
+          label="Preuzmi PDF"
           onPress={handlePdf}
           disabled={!uri || loading || busy !== null}
         />
@@ -114,6 +119,8 @@ function ActionChip({
   onPress: () => void;
   disabled?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <TouchableOpacity
       style={[styles.chip, disabled && styles.chipDisabled]}
@@ -130,7 +137,7 @@ function ActionChip({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   card: {
     marginBottom: 16,
     overflow: 'hidden',

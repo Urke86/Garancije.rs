@@ -6,13 +6,15 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { colors } from '@/lib/colors';
-
+import { useThemedStyles } from '@/hooks/useThemedStyles';
+import type { AppColors } from '@/lib/theme';
 interface Props {
   message: string;
 }
 
 export function AuthErrorBanner({ message }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   const shake = useSharedValue(0);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function AuthErrorBanner({ message }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: AppColors) => StyleSheet.create({
   banner: {
     backgroundColor: colors.errorLight,
     borderRadius: 12,
