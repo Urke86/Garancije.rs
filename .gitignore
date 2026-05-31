@@ -30,6 +30,7 @@ yarn-error.*
 # local env files
 .env*.local
 .env
+scripts/closed-testers.txt
 
 # supabase cli
 supabase/.temp/

@@ -25,6 +25,25 @@ export async function getPushPermissionStatus(): Promise<PushPermissionStatus> {
   return 'undetermined';
 }
 
+export async function ensureAndroidNotificationChannels(): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  await Notifications.setNotificationChannelAsync('reminders', {
+    name: 'Podsetnici garancije',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: colors.primary,
+    sound: 'default',
+  });
+  await Notifications.setNotificationChannelAsync('app_updates', {
+    name: 'Ažuriranja aplikacije',
+    importance: Notifications.AndroidImportance.HIGH,
+    vibrationPattern: [0, 250, 250, 250],
+    lightColor: colors.primary,
+    sound: 'default',
+  });
+}
+
 export async function requestPushPermissions(): Promise<PushPermissionStatus> {
   if (Platform.OS === 'web' || !Device.isDevice) return 'denied';
 
@@ -38,15 +57,7 @@ export async function requestPushPermissions(): Promise<PushPermissionStatus> {
 
   if (finalStatus !== 'granted') return 'denied';
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('reminders', {
-      name: 'Podsetnici garancije',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: colors.primary,
-      sound: 'default',
-    });
-  }
+  await ensureAndroidNotificationChannels();
 
   return 'granted';
 }
@@ -104,12 +115,22 @@ export async function registerForPushNotifications(userId: string): Promise<{
   return { token, permission };
 }
 
+export const PLAY_STORE_URL =
+  'https://play.google.com/store/apps/details?id=rs.garancije.app';
+
 export function parseNotificationData(
   data: Record<string, unknown> | undefined,
-): { receiptItemId?: string; reminderId?: string } {
+): {
+  receiptItemId?: string;
+  reminderId?: string;
+  type?: string;
+  url?: string;
+} {
   if (!data) return {};
   return {
     receiptItemId: typeof data.receiptItemId === 'string' ? data.receiptItemId : undefined,
     reminderId: typeof data.reminderId === 'string' ? data.reminderId : undefined,
+    type: typeof data.type === 'string' ? data.type : undefined,
+    url: typeof data.url === 'string' ? data.url : undefined,
   };
 }

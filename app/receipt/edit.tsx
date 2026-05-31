@@ -11,7 +11,6 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
-import { getDefaultWarrantyMonths } from '@/lib/warranty';
 import { ArrowLeft, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
 import { PrimaryButton } from '@/components/ui/PrimaryButton';
@@ -21,38 +20,16 @@ import { saveNewReceipt, type ReceiptItemInput } from '@/lib/receipt-persistence
 import {
   emptyOcrResult,
   hasRecognizedFields,
-  invokeReceiptOcr,
+  mapOcrToForm,
+  runReceiptOcrFromUri,
+  type OcrDetectableField,
   type OcrReceiptResult,
 } from '@/lib/ocr-receipt';
 import { clearPendingOcr, loadPendingOcr } from '@/lib/ocr-pending';
-import { loadReceiptImageBase64 } from '@/lib/receipt-image-base64';
+import { loadReceiptImageLocalUri } from '@/lib/receipt-image-base64';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
-
-function mapOcrToForm(ocrData: OcrReceiptResult): {
-  form: ReceiptFormState;
-  items: ReceiptItemInput[];
-} {
-  return {
-    form: {
-      store_name: ocrData.store_name || '',
-      purchase_date: ocrData.purchase_date || new Date().toISOString().split('T')[0],
-      total_amount: ocrData.total_amount?.toString() || '',
-      pib: ocrData.pib || '',
-      receipt_number: ocrData.receipt_number || '',
-    },
-    items:
-      ocrData.items?.length > 0
-        ? ocrData.items.map((i) => ({
-            name: i.name || '',
-            category: i.category || 'other',
-            price: i.price?.toString() || '',
-            warranty_months: getDefaultWarrantyMonths(i.category || 'other').toString(),
-          }))
-        : [{ name: '', category: 'other', price: '', warranty_months: '24' }],
-  };
-}
 
 export default function EditReceiptScreen() {
   const styles = useThemedStyles(createStyles);
@@ -68,6 +45,7 @@ export default function EditReceiptScreen() {
 
   const [ocrData, setOcrData] = useState<OcrReceiptResult>(emptyOcrResult());
   const [ocrWarning, setOcrWarning] = useState('');
+  const [detectedFields, setDetectedFields] = useState<OcrDetectableField[]>([]);
   const [loadingOcr, setLoadingOcr] = useState(Boolean(params.ocr_key));
   const [retryingOcr, setRetryingOcr] = useState(false);
   const [showRawText, setShowRawText] = useState(false);
@@ -76,6 +54,7 @@ export default function EditReceiptScreen() {
     store_name: '',
     purchase_date: new Date().toISOString().split('T')[0],
     total_amount: '',
+    currency: 'RSD',
     pib: '',
     receipt_number: '',
   });
@@ -85,13 +64,21 @@ export default function EditReceiptScreen() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const applyOcrResult = useCallback((result: OcrReceiptResult, warning: string | null) => {
-    setOcrData(result);
-    setOcrWarning(warning?.trim() || '');
-    const mapped = mapOcrToForm(result);
-    setForm(mapped.form);
-    setItems(mapped.items);
-  }, []);
+  const applyOcrResult = useCallback(
+    (
+      result: OcrReceiptResult,
+      warning: string | null,
+      fields: OcrDetectableField[] = [],
+    ) => {
+      setOcrData(result);
+      setOcrWarning(warning?.trim() || '');
+      setDetectedFields(fields);
+      const mapped = mapOcrToForm(result, fields);
+      setForm(mapped.form);
+      setItems(mapped.items);
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +88,7 @@ export default function EditReceiptScreen() {
         const pending = await loadPendingOcr(params.ocr_key);
         if (cancelled) return;
         if (pending) {
-          applyOcrResult(pending.result, pending.warning);
+          applyOcrResult(pending.result, pending.warning, pending.detectedFields ?? []);
         } else {
           setOcrWarning('OCR podaci nisu pronađeni — unesite ručno ili ponovite prepoznavanje.');
         }
@@ -145,21 +132,14 @@ export default function EditReceiptScreen() {
     setError('');
 
     try {
-      const base64 = await loadReceiptImageBase64(params.image_url);
-      if (!base64) {
+      const localUri = await loadReceiptImageLocalUri(params.image_url);
+      if (!localUri) {
         setError('Nije moguće učitati sliku za ponovni OCR.');
         return;
       }
 
-      const { data, error: ocrError } = await invokeReceiptOcr(base64);
-      const result = data ?? emptyOcrResult();
-      const warning =
-        ocrError ||
-        (!hasRecognizedFields(result)
-          ? 'Podaci nisu prepoznati — proverite sliku ili unesite ručno.'
-          : null);
-
-      applyOcrResult(result, warning);
+      const { data, error: ocrError, detectedFields: fields } = await runReceiptOcrFromUri(localUri);
+      applyOcrResult(data, ocrError, fields);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Nepoznata greška';
       setError('OCR greška: ' + message);
@@ -177,10 +157,12 @@ export default function EditReceiptScreen() {
     setSaving(true);
     setError('');
 
+    const { currency: _currency, ...persistForm } = form;
+
     const { receiptId, error: saveErr } = await saveNewReceipt(
       user.id,
       {
-        ...form,
+        ...persistForm,
         image_url: params.image_url || '',
         raw_ocr_text: ocrData.raw_text || '',
       },
@@ -212,7 +194,7 @@ export default function EditReceiptScreen() {
               {loadingOcr
                 ? 'Učitavam OCR podatke...'
                 : recognized
-                  ? 'OCR je prepoznao podatke — proverite pre čuvanja'
+                  ? 'Podaci su prepoznati na uređaju — proverite pre čuvanja'
                   : 'Unesite podatke sa računa'}
             </Text>
           </View>
@@ -236,7 +218,7 @@ export default function EditReceiptScreen() {
               <RefreshCw size={18} color={colors.primary} />
             )}
             <Text style={styles.retryOcrText}>
-              {retryingOcr ? 'Prepoznajem ponovo...' : 'Ponovi prepoznavanje'}
+              {retryingOcr ? 'Skeniram račun na uređaju...' : 'Ponovi prepoznavanje'}
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -253,7 +235,8 @@ export default function EditReceiptScreen() {
         ) : recognized ? (
           <View style={styles.infoBanner}>
             <Text style={styles.infoText}>
-              Automatski prepoznati podaci mogu biti netačni — proverite prodavnicu, iznos i datum.
+              Polja označena „Prepoznato” su automatski popunjena lokalnim OCR-om. Proverite ih pre
+              čuvanja.
             </Text>
           </View>
         ) : (
@@ -295,6 +278,7 @@ export default function EditReceiptScreen() {
           items={items}
           onChangeForm={(patch) => setForm((f) => ({ ...f, ...patch }))}
           onChangeItems={setItems}
+          autoDetectedFields={detectedFields}
         />
 
         <PrimaryButton
@@ -308,115 +292,116 @@ export default function EditReceiptScreen() {
   );
 }
 
-const createStyles = (colors: AppColors) => StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { paddingHorizontal: layout.gutter, paddingBottom: layout.scrollBottom + space.lg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.md,
-    paddingTop: space.sm,
-    paddingBottom: space.lg,
-  },
-  backBtn: { padding: space.xs },
-  headerText: { flex: 1 },
-  screenTitle: {
-    fontSize: 22,
-    fontFamily: fontFamily.bold,
-    color: colors.text,
-  },
-  screenSubtitle: {
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  retryOcrBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.sm,
-    paddingVertical: space.sm + 2,
-    marginBottom: space.md,
-    borderRadius: layout.radius - 6,
-    borderWidth: 1,
-    borderColor: 'rgba(6, 43, 95, 0.15)',
-    backgroundColor: colors.surface,
-  },
-  retryOcrText: {
-    fontSize: 14,
-    fontFamily: fontFamily.semibold,
-    color: colors.primary,
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm + 2,
-    backgroundColor: colors.accentLight,
-    borderRadius: layout.radius - 4,
-    padding: space.md,
-    marginBottom: space.md,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.25)',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-    lineHeight: 19,
-  },
-  warningBanner: {
-    backgroundColor: colors.errorLight,
-    borderRadius: layout.radius - 4,
-    padding: space.md,
-    marginBottom: space.md,
-    borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.2)',
-  },
-  warningText: {
-    fontSize: 13,
-    fontFamily: fontFamily.regular,
-    color: colors.error,
-    lineHeight: 19,
-  },
-  rawTextSection: {
-    marginBottom: space.md,
-    borderRadius: layout.radius - 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-  },
-  rawTextToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  rawTextTitle: {
-    fontSize: 13,
-    fontFamily: fontFamily.semibold,
-    color: colors.textSecondary,
-  },
-  rawTextBody: {
-    fontSize: 11,
-    fontFamily: fontFamily.regular,
-    color: colors.textMuted,
-    lineHeight: 16,
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    maxHeight: 200,
-  },
-  error: {
-    color: colors.error,
-    fontSize: 14,
-    fontFamily: fontFamily.regular,
-    backgroundColor: colors.errorLight,
-    padding: space.md,
-    borderRadius: layout.radius - 6,
-    marginBottom: space.md,
-  },
-  saveBtn: { marginTop: space.sm },
-});
+const createStyles = (colors: AppColors) =>
+  StyleSheet.create({
+    scroll: { flex: 1 },
+    content: { paddingHorizontal: layout.gutter, paddingBottom: layout.scrollBottom + space.lg },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      paddingTop: space.sm,
+      paddingBottom: space.lg,
+    },
+    backBtn: { padding: space.xs },
+    headerText: { flex: 1 },
+    screenTitle: {
+      fontSize: 22,
+      fontFamily: fontFamily.bold,
+      color: colors.text,
+    },
+    screenSubtitle: {
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    retryOcrBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: space.sm,
+      paddingVertical: space.sm + 2,
+      marginBottom: space.md,
+      borderRadius: layout.radius - 6,
+      borderWidth: 1,
+      borderColor: 'rgba(6, 43, 95, 0.15)',
+      backgroundColor: colors.surface,
+    },
+    retryOcrText: {
+      fontSize: 14,
+      fontFamily: fontFamily.semibold,
+      color: colors.primary,
+    },
+    infoBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.sm + 2,
+      backgroundColor: colors.accentLight,
+      borderRadius: layout.radius - 4,
+      padding: space.md,
+      marginBottom: space.md,
+      borderWidth: 1,
+      borderColor: 'rgba(0, 184, 217, 0.25)',
+    },
+    infoText: {
+      flex: 1,
+      fontSize: 13,
+      fontFamily: fontFamily.regular,
+      color: colors.textSecondary,
+      lineHeight: 19,
+    },
+    warningBanner: {
+      backgroundColor: colors.errorLight,
+      borderRadius: layout.radius - 4,
+      padding: space.md,
+      marginBottom: space.md,
+      borderWidth: 1,
+      borderColor: 'rgba(220, 38, 38, 0.2)',
+    },
+    warningText: {
+      fontSize: 13,
+      fontFamily: fontFamily.regular,
+      color: colors.error,
+      lineHeight: 19,
+    },
+    rawTextSection: {
+      marginBottom: space.md,
+      borderRadius: layout.radius - 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      overflow: 'hidden',
+    },
+    rawTextToggle: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    rawTextTitle: {
+      fontSize: 13,
+      fontFamily: fontFamily.semibold,
+      color: colors.textSecondary,
+    },
+    rawTextBody: {
+      fontSize: 11,
+      fontFamily: fontFamily.regular,
+      color: colors.textMuted,
+      lineHeight: 16,
+      paddingHorizontal: 12,
+      paddingBottom: 12,
+      maxHeight: 200,
+    },
+    error: {
+      color: colors.error,
+      fontSize: 14,
+      fontFamily: fontFamily.regular,
+      backgroundColor: colors.errorLight,
+      padding: space.md,
+      borderRadius: layout.radius - 6,
+      marginBottom: space.md,
+    },
+    saveBtn: { marginTop: space.sm },
+  });

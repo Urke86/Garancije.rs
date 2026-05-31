@@ -64,6 +64,7 @@ export default function ReceiptDetailScreen() {
     store_name: '',
     purchase_date: '',
     total_amount: '',
+    currency: 'RSD',
     pib: '',
     receipt_number: '',
   });
@@ -95,6 +96,7 @@ export default function ReceiptDetailScreen() {
         store_name: r.store_name,
         purchase_date: r.purchase_date,
         total_amount: String(r.total_amount ?? ''),
+        currency: 'RSD',
         pib: r.pib ?? '',
         receipt_number: r.receipt_number ?? '',
       });

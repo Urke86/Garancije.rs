@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,6 +7,7 @@ import {
   registerForPushNotifications,
   parseNotificationData,
   getPushPermissionStatus,
+  ensureAndroidNotificationChannels,
   type PushPermissionStatus,
 } from '@/lib/notifications';
 
@@ -31,6 +32,7 @@ export function usePushNotifications() {
 
   useEffect(() => {
     refreshPermission();
+    void ensureAndroidNotificationChannels();
   }, [refreshPermission]);
 
   useEffect(() => {
@@ -41,7 +43,13 @@ export function usePushNotifications() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as Record<string, unknown>;
-      const { receiptItemId } = parseNotificationData(data);
+      const { receiptItemId, type, url } = parseNotificationData(data);
+
+      if (type === 'app_update' && url) {
+        void Linking.openURL(url);
+        return;
+      }
+
       if (receiptItemId) {
         router.push(`/receipt/item/${receiptItemId}`);
       } else {

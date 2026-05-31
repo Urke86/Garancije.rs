@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { OcrReceiptResult } from '@/lib/ocr-receipt';
+import type { OcrReceiptResult, OcrDetectableField } from '@/lib/ocr-receipt';
 
 const PREFIX = 'pending-ocr:';
 
 export type PendingOcrPayload = {
   result: OcrReceiptResult;
   warning: string | null;
+  detectedFields: OcrDetectableField[];
 };
 
 export async function savePendingOcr(payload: PendingOcrPayload): Promise<string> {

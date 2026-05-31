@@ -1,0 +1,5 @@
+# Jedan email po liniji (ista lista kao u Play Console → Closed testing → Testers)
+# Linije sa # se ignorišu.
+# Kopirajte u scripts/closed-testers.txt (gitignored) i pokrenite: npm run testers:import
+tester1@example.com
+tester2@example.com

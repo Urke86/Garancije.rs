@@ -10,7 +10,6 @@ import {
   ScrollView,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -21,7 +20,7 @@ import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { Card } from '@/components/ui/Card';
 import { useScrollInsets } from '@/hooks/useScrollInsets';
 import { layout, space } from '@/lib/spacing';
-import { emptyOcrResult, hasRecognizedFields, invokeReceiptOcr } from '@/lib/ocr-receipt';
+import { runReceiptOcrFromUri, emptyOcrResult } from '@/lib/ocr-receipt';
 import { prepareImageForOcr } from '@/lib/ocr-image-preprocess';
 import { savePendingOcr } from '@/lib/ocr-pending';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -96,17 +95,29 @@ export default function ScanScreen() {
       }
 
       setPhase('ocr');
-      const { data: ocrResult, error: ocrError } = await invokeReceiptOcr(prepared.base64);
-      const ocrData = ocrResult ?? emptyOcrResult();
-      const warning =
-        ocrError ||
-        (!hasRecognizedFields(ocrData)
-          ? 'Podaci nisu prepoznati — proverite sliku ili unesite ručno.'
-          : null);
+
+      if (Platform.OS === 'web') {
+        const ocrKey = await savePendingOcr({
+          result: emptyOcrResult(),
+          warning: 'OCR na uređaju nije dostupan u web pregledaču. Koristite Android aplikaciju ili unesite podatke ručno.',
+          detectedFields: [],
+        });
+        router.push({
+          pathname: '/receipt/edit',
+          params: { image_url: fileName, ocr_key: ocrKey },
+        });
+        return;
+      }
+
+      const { data: ocrData, error: ocrError, detectedFields } = await runReceiptOcrFromUri(
+        prepared.uri,
+      );
+      const warning = ocrError;
 
       const ocrKey = await savePendingOcr({
         result: ocrData,
         warning,
+        detectedFields,
       });
 
       router.push({
@@ -139,7 +150,7 @@ export default function ScanScreen() {
       >
         <ScreenHeader
           title="Skeniraj račun"
-          subtitle="Slikajte ili izaberite fiskalni račun — OCR prepoznaje podatke automatski"
+          subtitle="Slikajte ili izaberite fiskalni račun — OCR prepoznaje podatke na uređaju"
         />
 
         {!loading ? (
@@ -164,7 +175,7 @@ export default function ScanScreen() {
             <Text style={styles.loadingSubtext}>
               {phase === 'upload'
                 ? 'Slika se čuva na server'
-                : 'Google Vision analizira fiskalni račun'}
+                : 'ML Kit lokalno prepoznaje latinicu i ćirilicu'}
             </Text>
           </Card>
         ) : image ? (

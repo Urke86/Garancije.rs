@@ -8,10 +8,13 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
 
+import type { OcrDetectableField } from '@/lib/ocr-receipt';
+
 export interface ReceiptFormState {
   store_name: string;
   purchase_date: string;
   total_amount: string;
+  currency: string;
   pib: string;
   receipt_number: string;
 }
@@ -22,6 +25,7 @@ interface Props {
   onChangeForm: (patch: Partial<ReceiptFormState>) => void;
   onChangeItems: (items: ReceiptItemInput[]) => void;
   highlightItemIndex?: number;
+  autoDetectedFields?: OcrDetectableField[];
 }
 
 export function ReceiptEditForm({
@@ -30,9 +34,11 @@ export function ReceiptEditForm({
   onChangeForm,
   onChangeItems,
   highlightItemIndex,
+  autoDetectedFields = [],
 }: Props) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const detected = new Set(autoDetectedFields);
 
   const addItem = () => {
     onChangeItems([
@@ -58,17 +64,61 @@ export function ReceiptEditForm({
     <View style={styles.wrap}>
       <Card style={styles.section}>
         <Text style={styles.sectionTitle}>Podaci o kupovini</Text>
-        <Field label="Prodavnica" value={form.store_name} onChangeText={(v) => onChangeForm({ store_name: v })} placeholder="Naziv prodavnice" />
-        <Field label="Datum kupovine proizvoda (GGGG-MM-DD)" value={form.purchase_date} onChangeText={(v) => onChangeForm({ purchase_date: v })} placeholder="2025-10-04" />
+        <Field
+          label="Prodavnica"
+          value={form.store_name}
+          onChangeText={(v) => onChangeForm({ store_name: v })}
+          placeholder="Naziv prodavnice"
+          autoDetected={detected.has('store_name')}
+        />
+        <Field
+          label="Datum kupovine proizvoda (GGGG-MM-DD)"
+          value={form.purchase_date}
+          onChangeText={(v) => onChangeForm({ purchase_date: v })}
+          placeholder="2025-10-04"
+          autoDetected={detected.has('purchase_date')}
+        />
         <View style={styles.row}>
           <View style={styles.half}>
-            <Field label="Ukupan iznos (RSD)" value={form.total_amount} onChangeText={(v) => onChangeForm({ total_amount: v })} placeholder="0" keyboardType="numeric" />
+            <Field
+              label="Ukupan iznos"
+              value={form.total_amount}
+              onChangeText={(v) => onChangeForm({ total_amount: v })}
+              placeholder="0"
+              keyboardType="numeric"
+              autoDetected={detected.has('total_amount')}
+            />
           </View>
           <View style={styles.half}>
-            <Field label="PIB prodavnice" value={form.pib} onChangeText={(v) => onChangeForm({ pib: v })} placeholder="PIB" />
+            <Field
+              label="Valuta"
+              value={form.currency}
+              onChangeText={(v) => onChangeForm({ currency: v.toUpperCase() })}
+              placeholder="RSD"
+              autoDetected={detected.has('currency')}
+            />
           </View>
         </View>
-        <Field label="Broj fiskalnog računa" value={form.receipt_number} onChangeText={(v) => onChangeForm({ receipt_number: v })} placeholder="Broj računa" />
+        <View style={styles.row}>
+          <View style={styles.half}>
+            <Field
+              label="PIB prodavnice"
+              value={form.pib}
+              onChangeText={(v) => onChangeForm({ pib: v })}
+              placeholder="PIB"
+              autoDetected={detected.has('pib')}
+            />
+          </View>
+          <View style={styles.half}>
+            <Field
+              label="Broj fiskalnog računa"
+              value={form.receipt_number}
+              onChangeText={(v) => onChangeForm({ receipt_number: v })}
+              placeholder="Broj računa"
+              autoDetected={detected.has('receipt_number')}
+            />
+          </View>
+        </View>
       </Card>
 
       <View style={styles.productsHeader}>
@@ -100,7 +150,13 @@ export function ReceiptEditForm({
               </TouchableOpacity>
             ) : null}
           </View>
-          <Field label="Naziv proizvoda" value={item.name} onChangeText={(v) => updateItem(index, 'name', v)} placeholder="npr. Bojler novi" />
+          <Field
+            label="Naziv proizvoda"
+            value={item.name}
+            onChangeText={(v) => updateItem(index, 'name', v)}
+            placeholder="npr. Bojler novi"
+            autoDetected={detected.has('product_name') && index === 0}
+          />
           <Text style={styles.chipsLabel}>Kategorija</Text>
           <View style={styles.chips}>
             {CATEGORIES.map((cat) => (
@@ -117,7 +173,14 @@ export function ReceiptEditForm({
           </View>
           <View style={styles.row}>
             <View style={styles.half}>
-              <Field label="Cena (RSD)" value={item.price} onChangeText={(v) => updateItem(index, 'price', v)} placeholder="0" keyboardType="numeric" />
+              <Field
+                label="Cena"
+                value={item.price}
+                onChangeText={(v) => updateItem(index, 'price', v)}
+                placeholder="0"
+                keyboardType="numeric"
+                autoDetected={detected.has('product_name') && index === 0}
+              />
             </View>
             <View style={styles.half}>
               <Field label="Garancija (meseci)" value={item.warranty_months} onChangeText={(v) => updateItem(index, 'warranty_months', v)} placeholder="24" keyboardType="numeric" />
@@ -135,21 +198,30 @@ function Field({
   onChangeText,
   placeholder,
   keyboardType,
+  autoDetected,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   placeholder?: string;
   keyboardType?: 'default' | 'numeric';
+  autoDetected?: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
+      <View style={styles.fieldLabelRow}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {autoDetected ? (
+          <View style={styles.detectedBadge}>
+            <Text style={styles.detectedBadgeText}>Prepoznato</Text>
+          </View>
+        ) : null}
+      </View>
       <TextInput
-        style={styles.input}
+        style={[styles.input, autoDetected && styles.inputDetected]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -207,11 +279,29 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     color: colors.textSecondary,
   },
   field: { marginBottom: 12 },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   fieldLabel: {
     fontSize: 12,
     fontFamily: fontFamily.medium,
     color: colors.textMuted,
-    marginBottom: 6,
+  },
+  detectedBadge: {
+    backgroundColor: colors.accentLight,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 184, 217, 0.35)',
+  },
+  detectedBadgeText: {
+    fontSize: 10,
+    fontFamily: fontFamily.semibold,
+    color: colors.primary,
   },
   input: {
     backgroundColor: colors.surfaceAlt,
@@ -223,6 +313,10 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     color: colors.text,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  inputDetected: {
+    borderColor: colors.accent,
+    backgroundColor: 'rgba(0, 184, 217, 0.06)',
   },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },

@@ -39,3 +39,22 @@ export async function loadReceiptImageBase64(
   }
   return normalizeBase64Image(base64);
 }
+
+/** Preuzima sliku računa u cache i vraća lokalni file:// URI za on-device OCR. */
+export async function loadReceiptImageLocalUri(
+  storedPath: string | null | undefined,
+): Promise<string | null> {
+  const path = getReceiptStoragePath(storedPath);
+  if (!path) return null;
+
+  const signedUrl = await resolveReceiptImageUri(path);
+  if (!signedUrl) return null;
+
+  if (Platform.OS === 'web') return null;
+
+  const cachePath = `${FileSystem.cacheDirectory}ocr-${Date.now()}.jpg`;
+  const download = await FileSystem.downloadAsync(signedUrl, cachePath);
+  if (download.status !== 200) return null;
+
+  return download.uri;
+}

@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "generate:icons": "node scripts/generate-app-icons.mjs",
     "export:upload-cert": "node scripts/export-eas-upload-certificate.mjs",
-    "generate:feature-graphic": "node scripts/generate-play-feature-graphic.mjs"
+    "generate:feature-graphic": "node scripts/generate-play-feature-graphic.mjs",
+    "testers:import": "node scripts/import-closed-testers.mjs",
+    "notify:update": "node scripts/notify-app-update.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -26,6 +28,7 @@
     "expo": "~54.0.34",
     "expo-auth-session": "~7.0.11",
     "expo-blur": "~15.0.8",
+    "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.13",
     "expo-crypto": "~15.0.9",
     "expo-device": "~8.0.10",
@@ -36,6 +39,7 @@
     "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
     "expo-linking": "~8.0.8",
+    "expo-mlkit-ocr": "^0.2.7",
     "expo-notifications": "~0.32.17",
     "expo-print": "~15.0.8",
     "expo-router": "~6.0.23",
