@@ -18,6 +18,12 @@ export type AppColors = {
   warningLight: string;
   error: string;
   errorLight: string;
+  borderAccentSoft: string;
+  borderErrorSoft: string;
+  borderPrimarySoft: string;
+  borderWarningSoft: string;
+  overlayPhotoScrim: string;
+  surfaceDetected: string;
   background: string;
   surface: string;
   surfaceAlt: string;
@@ -60,6 +66,12 @@ export const lightColors: AppColors = {
   warningLight: '#FEF3C7',
   error: '#DC2626',
   errorLight: '#FEE2E2',
+  borderAccentSoft: 'rgba(0, 184, 217, 0.2)',
+  borderErrorSoft: 'rgba(220, 38, 38, 0.2)',
+  borderPrimarySoft: 'rgba(6, 43, 95, 0.15)',
+  borderWarningSoft: 'rgba(217, 119, 6, 0.25)',
+  overlayPhotoScrim: 'rgba(6, 43, 95, 0.75)',
+  surfaceDetected: 'rgba(0, 184, 217, 0.06)',
   background: '#F7FAFC',
   surface: '#FFFFFF',
   surfaceAlt: '#EDF2F7',
@@ -102,6 +114,12 @@ export const darkColors: AppColors = {
   warningLight: 'rgba(251, 191, 36, 0.16)',
   error: '#F87171',
   errorLight: 'rgba(248, 113, 113, 0.16)',
+  borderAccentSoft: 'rgba(34, 211, 238, 0.22)',
+  borderErrorSoft: 'rgba(248, 113, 113, 0.28)',
+  borderPrimarySoft: 'rgba(125, 211, 252, 0.18)',
+  borderWarningSoft: 'rgba(251, 191, 36, 0.28)',
+  overlayPhotoScrim: 'rgba(11, 18, 32, 0.78)',
+  surfaceDetected: 'rgba(34, 211, 238, 0.1)',
   background: '#0B1220',
   surface: '#152238',
   surfaceAlt: '#1E2F4A',

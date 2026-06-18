@@ -90,6 +90,8 @@ export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props
           onPress={() => router.back()}
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityRole="button"
+          accessibilityLabel="Nazad"
         >
           <ArrowLeft size={22} color={colors.text} />
         </TouchableOpacity>

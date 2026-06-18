@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking } from 'react-native';
 import { Bell, ChevronRight } from 'lucide-react-native';
 import { fontFamily } from '@/lib/typography';
 import { getPushPermissionStatus, requestPushPermissions } from '@/lib/notifications';
@@ -30,6 +30,10 @@ export function NotificationPermissionBanner({ onPermissionGranted }: Props) {
   if (Platform.OS === 'web' || status === 'granted') return null;
 
   const handleEnable = async () => {
+    if (status === 'denied') {
+      await Linking.openSettings();
+      return;
+    }
     setLoading(true);
     const result = await requestPushPermissions();
     setStatus(result);
@@ -43,6 +47,10 @@ export function NotificationPermissionBanner({ onPermissionGranted }: Props) {
       onPress={handleEnable}
       activeOpacity={0.9}
       disabled={loading}
+      accessibilityRole="button"
+      accessibilityLabel={
+        status === 'denied' ? 'Otvori podešavanja obaveštenja' : 'Uključi obaveštenja'
+      }
     >
       <View style={styles.iconWrap}>
         <Bell size={20} color={colors.primary} />
@@ -67,7 +75,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.25)',
+    borderColor: colors.borderAccentSoft,
     padding: 14,
     marginBottom: 16,
     gap: 12,

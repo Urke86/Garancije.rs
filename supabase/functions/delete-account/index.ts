@@ -66,6 +66,18 @@ Deno.serve(async (req: Request) => {
       if (path) storagePaths.add(path);
     }
 
+    const { error: receiptsError } = await admin
+      .from("receipts")
+      .delete()
+      .eq("user_id", userId);
+
+    if (receiptsError) {
+      throw new Error(`Brisanje računa nije uspelo: ${receiptsError.message}`);
+    }
+
+    await admin.from("push_tokens").delete().eq("user_id", userId);
+    await admin.from("notification_preferences").delete().eq("user_id", userId);
+
     const { data: listed, error: listError } = await admin.storage
       .from(BUCKET)
       .list(userId, { limit: 1000 });
@@ -86,18 +98,6 @@ Deno.serve(async (req: Request) => {
         console.warn("Storage remove warning:", removeError.message);
       }
     }
-
-    const { error: receiptsError } = await admin
-      .from("receipts")
-      .delete()
-      .eq("user_id", userId);
-
-    if (receiptsError) {
-      throw new Error(`Brisanje računa nije uspelo: ${receiptsError.message}`);
-    }
-
-    await admin.from("push_tokens").delete().eq("user_id", userId);
-    await admin.from("notification_preferences").delete().eq("user_id", userId);
 
     const { error: deleteUserError } = await admin.auth.admin.deleteUser(userId);
     if (deleteUserError) {

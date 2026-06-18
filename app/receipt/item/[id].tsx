@@ -117,15 +117,35 @@ export default function ReceiptItemDetailScreen() {
     await loadItem();
   };
 
-  if (loading || !item) {
+  if (loading) {
     return (
       <AppScreen>
         <View style={styles.centered}>
-          {loading ? (
-            <ActivityIndicator size="large" color={colors.primary} />
-          ) : (
-            <Text style={styles.missing}>Stavka nije pronađena.</Text>
-          )}
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </AppScreen>
+    );
+  }
+
+  if (!item) {
+    return (
+      <AppScreen>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Nazad"
+          >
+            <ArrowLeft size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.centered}>
+          <Text style={styles.missingTitle}>Proizvod nije pronađen</Text>
+          <Text style={styles.missingBody}>
+            Stavka je možda obrisana ili nemate pristup ovom proizvodu.
+          </Text>
+          <PrimaryButton title="Nazad" onPress={() => router.back()} style={styles.missingBtn} />
         </View>
       </AppScreen>
     );
@@ -143,7 +163,12 @@ export default function ReceiptItemDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Nazad"
+          >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.topBarCenter}>
@@ -347,7 +372,21 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingBottom: 48 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  missing: { fontSize: 16, fontFamily: fontFamily.medium, color: colors.textSecondary },
+  missingTitle: {
+    fontSize: 17,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
+    textAlign: 'center',
+  },
+  missingBody: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  missingBtn: { marginTop: 16, alignSelf: 'stretch', minWidth: 200 },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -27,7 +27,11 @@ import { getReceiptStoragePath } from '@/lib/receipt-image';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
+import { validateReceiptForm } from '@/lib/validation/receipt-form';
+import { getSupabaseErrorMessage } from '@/lib/supabase-errors';
+import { layout } from '@/lib/spacing';
 import { useColors } from '@/contexts/ThemeContext';
+import type { ReceiptFormField } from '@/lib/validation/receipt-form';
 
 interface ReceiptRecord {
   id: string;
@@ -59,6 +63,7 @@ export default function ReceiptDetailScreen() {
   const [editing, setEditing] = useState(edit === '1');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ReceiptFormField, string>>>({});
 
   const [form, setForm] = useState<ReceiptFormState>({
     store_name: '',
@@ -71,6 +76,7 @@ export default function ReceiptDetailScreen() {
   const [items, setItems] = useState<ReceiptItemInput[]>([]);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [initialItemIds, setInitialItemIds] = useState<string[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -82,12 +88,21 @@ export default function ReceiptDetailScreen() {
       return;
     }
     setLoading(true);
-    const { data } = await supabase
+    setLoadError(null);
+    const { data, error } = await supabase
       .from('receipts')
       .select('*, receipt_items(*)')
       .eq('id', id)
       .eq('user_id', user.id)
       .maybeSingle();
+
+    const err = getSupabaseErrorMessage(error);
+    if (err) {
+      setLoadError(err);
+      setReceipt(null);
+      setLoading(false);
+      return;
+    }
 
     if (data) {
       const r = data as ReceiptRecord;
@@ -157,10 +172,13 @@ export default function ReceiptDetailScreen() {
 
   const handleSave = async () => {
     if (!user || !receipt) return;
-    if (!form.store_name.trim()) {
-      setError('Unesite naziv prodavnice');
+    const validation = validateReceiptForm(form, items);
+    if (!validation.ok) {
+      setFieldErrors(validation.fieldErrors);
+      setError(validation.message || 'Proverite unete podatke');
       return;
     }
+    setFieldErrors({});
     setSaving(true);
     setError('');
 
@@ -206,11 +224,26 @@ export default function ReceiptDetailScreen() {
   if (!receipt) {
     return (
       <AppScreen>
+        <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Nazad"
+          >
+            <ArrowLeft size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.centered}>
-          <Text style={styles.missing}>Račun nije pronađen.</Text>
+          <Text style={styles.missing}>
+            {loadError ? 'Greška pri učitavanju računa' : 'Račun nije pronađen.'}
+          </Text>
+          {loadError ? (
+            <Text style={styles.missingDetail}>{loadError}</Text>
+          ) : null}
           <PrimaryButton
-            title="Nazad na kupovine"
-            onPress={() => router.replace('/(tabs)/timeline')}
+            title={loadError ? 'Pokušaj ponovo' : 'Nazad na kupovine'}
+            onPress={() => (loadError ? loadReceipt() : router.replace('/(tabs)/timeline'))}
             style={styles.missingBtn}
           />
         </View>
@@ -229,7 +262,12 @@ export default function ReceiptDetailScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.topBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.iconBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Nazad"
+          >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.topBarCenter}>
@@ -269,6 +307,7 @@ export default function ReceiptDetailScreen() {
               items={items}
               onChangeForm={(patch) => setForm((f) => ({ ...f, ...patch }))}
               onChangeItems={handleItemsChange}
+              fieldErrors={fieldErrors}
             />
             <PrimaryButton
               title={saving ? 'Čuvam...' : 'Sačuvaj izmene'}
@@ -367,13 +406,20 @@ function SummaryRow({
 
 const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingBottom: 48 },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: 24 },
+  content: { paddingHorizontal: layout.gutter, paddingBottom: 48 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16, padding: layout.gutter },
   missing: {
     fontSize: 16,
     fontFamily: fontFamily.medium,
     color: colors.textSecondary,
     textAlign: 'center',
+  },
+  missingDetail: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   missingBtn: { alignSelf: 'stretch', minWidth: 220 },
   topBar: {

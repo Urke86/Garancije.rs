@@ -23,7 +23,7 @@ export function ThemeToggleCard() {
         </View>
         <View style={styles.headerText}>
           <Text style={styles.title}>Izgled aplikacije</Text>
-          <Text style={styles.subtitle}>Svetla ili tamna tema — izbor se pamti za vaš nalog</Text>
+          <Text style={styles.subtitle}>Svetla ili tamna tema — izbor se pamti na ovom uređaju</Text>
         </View>
       </View>
 

@@ -102,7 +102,7 @@ async function createPdfBytesFromImage(base64: string, title: string): Promise<U
 }
 
 async function downloadPdfOnWeb(pdfBytes: Uint8Array, filename: string): Promise<void> {
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const blob = new Blob([Uint8Array.from(pdfBytes)], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;

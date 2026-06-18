@@ -5,8 +5,9 @@ import {
   SectionList,
   TouchableOpacity,
   RefreshControl,
-  Alert,
   View,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +26,8 @@ import { useReminderBadge } from '@/hooks/useReminderBadge';
 import { groupRemindersByDate } from '@/lib/reminder-groups';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
+import { InlineErrorBanner } from '@/components/ui/InlineErrorBanner';
+import { getSupabaseErrorMessage } from '@/lib/supabase-errors';
 import { useColors } from '@/contexts/ThemeContext';
 
 interface Reminder {
@@ -49,6 +52,9 @@ export default function RemindersScreen() {
   const { refresh: refreshBadge } = useReminderBadge();
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [snoozeTarget, setSnoozeTarget] = useState<string | null>(null);
+  const [snoozing, setSnoozing] = useState(false);
 
   const loadReminders = useCallback(async () => {
     if (!user) return;
@@ -82,7 +88,16 @@ export default function RemindersScreen() {
   };
 
   const dismissReminder = async (id: string) => {
-    await supabase.from('reminders').update({ is_dismissed: true }).eq('id', id);
+    setActionError('');
+    const { error } = await supabase
+      .from('reminders')
+      .update({ is_dismissed: true })
+      .eq('id', id);
+    const err = getSupabaseErrorMessage(error);
+    if (err) {
+      setActionError(err);
+      return;
+    }
     setReminders((prev) =>
       prev.map((r) => (r.id === id ? { ...r, is_dismissed: true } : r)),
     );
@@ -92,21 +107,26 @@ export default function RemindersScreen() {
   const snoozeReminder = async (id: string, days: number) => {
     const reminder = reminders.find((r) => r.id === id);
     if (!reminder) return;
+    setSnoozing(true);
+    setActionError('');
     const next = new Date(reminder.remind_at);
     next.setDate(next.getDate() + days);
-    await supabase
+    const { error } = await supabase
       .from('reminders')
       .update({ remind_at: next.toISOString(), is_sent: false })
       .eq('id', id);
+    setSnoozing(false);
+    const err = getSupabaseErrorMessage(error);
+    if (err) {
+      setActionError(err);
+      return;
+    }
+    setSnoozeTarget(null);
     await loadReminders();
   };
 
   const showSnoozeOptions = (id: string) => {
-    Alert.alert('Odloži podsetnik', 'Za koliko da vas ponovo podsetimo?', [
-      { text: '1 dan', onPress: () => snoozeReminder(id, 1) },
-      { text: '7 dana', onPress: () => snoozeReminder(id, 7) },
-      { text: 'Otkaži', style: 'cancel' },
-    ]);
+    setSnoozeTarget(id);
   };
 
   const pending = useMemo(
@@ -232,6 +252,7 @@ export default function RemindersScreen() {
               subtitle={`${pending.length} aktivnih podsetnika`}
             />
             <NotificationPermissionBanner onPermissionGranted={() => register()} />
+            <InlineErrorBanner message={actionError} />
             {pending.length === 0 && dismissed.length === 0 ? null : (
               <Text style={styles.hint}>
                 Koristite dugme sa sata pored podsetnika da ga odložite za 1 ili 7 dana
@@ -255,6 +276,45 @@ export default function RemindersScreen() {
           />
         }
       />
+      <Modal
+        visible={snoozeTarget !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSnoozeTarget(null)}
+      >
+        <View style={styles.snoozeBackdrop}>
+          <View style={styles.snoozeCard}>
+            <Text style={styles.snoozeTitle}>Odloži podsetnik</Text>
+            <Text style={styles.snoozeMessage}>Za koliko da vas ponovo podsetimo?</Text>
+            <TouchableOpacity
+              style={styles.snoozeOption}
+              onPress={() => snoozeTarget && snoozeReminder(snoozeTarget, 1)}
+              disabled={snoozing}
+              accessibilityRole="button"
+              accessibilityLabel="Odloži za 1 dan"
+            >
+              <Text style={styles.snoozeOptionText}>1 dan</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.snoozeOption}
+              onPress={() => snoozeTarget && snoozeReminder(snoozeTarget, 7)}
+              disabled={snoozing}
+              accessibilityRole="button"
+              accessibilityLabel="Odloži za 7 dana"
+            >
+              <Text style={styles.snoozeOptionText}>7 dana</Text>
+            </TouchableOpacity>
+            <Pressable
+              style={styles.snoozeCancel}
+              onPress={() => setSnoozeTarget(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Otkaži"
+            >
+              <Text style={styles.snoozeCancelText}>Otkaži</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </AppScreen>
   );
 }
@@ -342,7 +402,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.2)',
+    borderColor: colors.borderAccentSoft,
   },
   dismissButton: {
     width: 36,
@@ -351,5 +411,50 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  snoozeBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlayPhotoScrim,
+    justifyContent: 'center',
+    padding: layout.gutter,
+  },
+  snoozeCard: {
+    backgroundColor: colors.surface,
+    borderRadius: layout.radius,
+    padding: space.lg,
+    gap: space.sm,
+  },
+  snoozeTitle: {
+    fontSize: 17,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
+  },
+  snoozeMessage: {
+    fontSize: 14,
+    fontFamily: fontFamily.regular,
+    color: colors.textMuted,
+    marginBottom: space.sm,
+  },
+  snoozeOption: {
+    backgroundColor: colors.accentLight,
+    borderRadius: layout.radius - 2,
+    paddingVertical: space.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderAccentSoft,
+  },
+  snoozeOptionText: {
+    fontSize: 15,
+    fontFamily: fontFamily.semibold,
+    color: colors.primary,
+  },
+  snoozeCancel: {
+    paddingVertical: space.md,
+    alignItems: 'center',
+  },
+  snoozeCancelText: {
+    fontSize: 15,
+    fontFamily: fontFamily.medium,
+    color: colors.textMuted,
   },
 });

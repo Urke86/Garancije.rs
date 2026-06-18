@@ -61,7 +61,6 @@ export function PremiumTabBar({ state, descriptors, navigation }: BottomTabBarPr
                   onPress={() => onTabPress(route.name, route.key, isFocused)}
                   accessibilityState={{ selected: isFocused }}
                   bottomInset={bottomInset}
-                  children={null}
                 />
               </View>
             );

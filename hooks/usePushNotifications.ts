@@ -1,11 +1,13 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { Linking, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useColors } from '@/contexts/ThemeContext';
 import {
   registerForPushNotifications,
-  parseNotificationData,
+  resolveNotificationTapAction,
+  openPlayStoreUrl,
   getPushPermissionStatus,
   ensureAndroidNotificationChannels,
   type PushPermissionStatus,
@@ -13,8 +15,10 @@ import {
 
 export function usePushNotifications() {
   const { user } = useAuth();
+  const colors = useColors();
   const [permission, setPermission] = useState<PushPermissionStatus>('undetermined');
   const registeredRef = useRef<string | null>(null);
+  const handledNotificationIdRef = useRef<string | null>(null);
 
   const refreshPermission = useCallback(async () => {
     const status = await getPushPermissionStatus();
@@ -30,10 +34,33 @@ export function usePushNotifications() {
     return result;
   }, [user]);
 
+  const handleNotificationResponse = useCallback(
+    (response: Notifications.NotificationResponse) => {
+      const notificationId = response.notification.request.identifier;
+      if (handledNotificationIdRef.current === notificationId) return;
+      handledNotificationIdRef.current = notificationId;
+
+      const data = response.notification.request.content.data as Record<string, unknown>;
+      const action = resolveNotificationTapAction(data);
+
+      if (action.kind === 'open_store') {
+        void openPlayStoreUrl(action.url);
+        return;
+      }
+
+      if (action.kind === 'receipt_item') {
+        router.push(`/receipt/item/${action.receiptItemId}`);
+      } else {
+        router.push('/reminders');
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     refreshPermission();
-    void ensureAndroidNotificationChannels();
-  }, [refreshPermission]);
+    void ensureAndroidNotificationChannels(colors.primary);
+  }, [refreshPermission, colors.primary]);
 
   useEffect(() => {
     if (!user || Platform.OS === 'web') return;
@@ -41,23 +68,18 @@ export function usePushNotifications() {
   }, [user, register]);
 
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as Record<string, unknown>;
-      const { receiptItemId, type, url } = parseNotificationData(data);
+    const sub = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
 
-      if (type === 'app_update' && url) {
-        void Linking.openURL(url);
-        return;
-      }
-
-      if (receiptItemId) {
-        router.push(`/receipt/item/${receiptItemId}`);
-      } else {
-        router.push('/reminders');
+    // Kad je app bio zatvoren, tap samo pokrene app — listener još nije registrovan.
+    void Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) {
+        handleNotificationResponse(response);
+        void Notifications.clearLastNotificationResponseAsync();
       }
     });
+
     return () => sub.remove();
-  }, []);
+  }, [handleNotificationResponse]);
 
   return { permission, refreshPermission, register, requestPermissions: register };
 }

@@ -45,7 +45,10 @@ export async function saveNewReceipt(
   }
 
   const itemError = await insertItemsWithReminders(userId, receipt.id, form.purchase_date, items);
-  if (itemError) return { receiptId: null, error: itemError };
+  if (itemError) {
+    await supabase.from('receipts').delete().eq('id', receipt.id).eq('user_id', userId);
+    return { receiptId: null, error: itemError };
+  }
 
   return { receiptId: receipt.id, error: null };
 }
@@ -57,7 +60,9 @@ async function insertItemsWithReminders(
   items: ReceiptItemInput[],
 ): Promise<string | null> {
   const validItems = items.filter((i) => i.name.trim());
-  if (validItems.length === 0) return null;
+  if (validItems.length === 0) {
+    return 'Dodajte bar jedan proizvod sa nazivom';
+  }
 
   const itemsToInsert = validItems.map((i) => ({
     receipt_id: receiptId,
@@ -125,7 +130,9 @@ async function syncReceiptItems(
   items: ReceiptItemInput[],
 ): Promise<string | null> {
   const validItems = items.filter((i) => i.name.trim());
-  if (validItems.length === 0) return null;
+  if (validItems.length === 0) {
+    return 'Dodajte bar jedan proizvod sa nazivom';
+  }
 
   for (const item of validItems) {
     const months = parseInt(item.warranty_months, 10) || 24;

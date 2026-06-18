@@ -1,6 +1,5 @@
-import { Tabs } from 'expo-router';
+import { Tabs, router } from 'expo-router';
 import { useEffect } from 'react';
-import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { hasVerifiedEmail } from '@/lib/auth/session';
 import { PremiumTabBar } from '@/components/ui/PremiumTabBar';

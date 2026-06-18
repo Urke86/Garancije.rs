@@ -14,6 +14,16 @@ export function useReceiptImageUri(stored: string | null | undefined) {
       return;
     }
 
+    if (
+      stored.startsWith('file://') ||
+      stored.startsWith('content://') ||
+      stored.startsWith('blob:')
+    ) {
+      setUri(stored);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     resolveReceiptImageUri(stored).then((resolved) => {
       if (!cancelled) {

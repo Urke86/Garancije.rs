@@ -16,7 +16,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
 
-interface Props extends BottomTabBarButtonProps {
+interface Props extends Omit<BottomTabBarButtonProps, 'children'> {
   bottomInset?: number;
 }
 

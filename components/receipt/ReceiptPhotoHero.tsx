@@ -179,7 +179,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(6, 43, 95, 0.75)',
+    backgroundColor: colors.overlayPhotoScrim,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
@@ -204,7 +204,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     borderRadius: 12,
     backgroundColor: colors.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.25)',
+    borderColor: colors.borderAccentSoft,
   },
   chipDisabled: { opacity: 0.5 },
   chipText: {

@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Plus, Trash2 } from 'lucide-react-native';
 import { fontFamily } from '@/lib/typography';
+import { space } from '@/lib/spacing';
 import { CATEGORIES, getDefaultWarrantyMonths } from '@/lib/warranty';
 import type { ReceiptItemInput } from '@/lib/receipt-persistence';
 import { Card } from '@/components/ui/Card';
@@ -9,6 +10,7 @@ import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
 
 import type { OcrDetectableField } from '@/lib/ocr-receipt';
+import type { ReceiptFormField } from '@/lib/validation/receipt-form';
 
 export interface ReceiptFormState {
   store_name: string;
@@ -26,6 +28,7 @@ interface Props {
   onChangeItems: (items: ReceiptItemInput[]) => void;
   highlightItemIndex?: number;
   autoDetectedFields?: OcrDetectableField[];
+  fieldErrors?: Partial<Record<ReceiptFormField, string>>;
 }
 
 export function ReceiptEditForm({
@@ -35,6 +38,7 @@ export function ReceiptEditForm({
   onChangeItems,
   highlightItemIndex,
   autoDetectedFields = [],
+  fieldErrors = {},
 }: Props) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
@@ -70,6 +74,7 @@ export function ReceiptEditForm({
           onChangeText={(v) => onChangeForm({ store_name: v })}
           placeholder="Naziv prodavnice"
           autoDetected={detected.has('store_name')}
+          error={fieldErrors.store_name}
         />
         <Field
           label="Datum kupovine proizvoda (GGGG-MM-DD)"
@@ -77,6 +82,7 @@ export function ReceiptEditForm({
           onChangeText={(v) => onChangeForm({ purchase_date: v })}
           placeholder="2025-10-04"
           autoDetected={detected.has('purchase_date')}
+          error={fieldErrors.purchase_date}
         />
         <View style={styles.row}>
           <View style={styles.half}>
@@ -87,6 +93,7 @@ export function ReceiptEditForm({
               placeholder="0"
               keyboardType="numeric"
               autoDetected={detected.has('total_amount')}
+              error={fieldErrors.total_amount}
             />
           </View>
           <View style={styles.half}>
@@ -137,6 +144,10 @@ export function ReceiptEditForm({
         </Card>
       ) : null}
 
+      {fieldErrors.items ? (
+        <Text style={styles.itemsError}>{fieldErrors.items}</Text>
+      ) : null}
+
       {items.map((item, index) => (
         <Card
           key={item.id ?? `new-${index}`}
@@ -156,6 +167,7 @@ export function ReceiptEditForm({
             onChangeText={(v) => updateItem(index, 'name', v)}
             placeholder="npr. Bojler novi"
             autoDetected={detected.has('product_name') && index === 0}
+            error={fieldErrors[`item_${index}_name`]}
           />
           <Text style={styles.chipsLabel}>Kategorija</Text>
           <View style={styles.chips}>
@@ -164,6 +176,9 @@ export function ReceiptEditForm({
                 key={cat.id}
                 style={[styles.chip, item.category === cat.id && styles.chipActive]}
                 onPress={() => updateItem(index, 'category', cat.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: item.category === cat.id }}
+                accessibilityLabel={`Kategorija: ${cat.label}`}
               >
                 <Text style={[styles.chipText, item.category === cat.id && styles.chipTextActive]}>
                   {cat.label}
@@ -180,6 +195,7 @@ export function ReceiptEditForm({
                 placeholder="0"
                 keyboardType="numeric"
                 autoDetected={detected.has('product_name') && index === 0}
+                error={fieldErrors[`item_${index}_price`]}
               />
             </View>
             <View style={styles.half}>
@@ -199,6 +215,7 @@ function Field({
   placeholder,
   keyboardType,
   autoDetected,
+  error,
 }: {
   label: string;
   value: string;
@@ -206,6 +223,7 @@ function Field({
   placeholder?: string;
   keyboardType?: 'default' | 'numeric';
   autoDetected?: boolean;
+  error?: string;
 }) {
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
@@ -221,13 +239,14 @@ function Field({
         ) : null}
       </View>
       <TextInput
-        style={[styles.input, autoDetected && styles.inputDetected]}
+        style={[styles.input, autoDetected && styles.inputDetected, error && styles.inputError]}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
         keyboardType={keyboardType}
       />
+      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
     </View>
   );
 }
@@ -296,7 +315,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.35)',
+    borderColor: colors.borderAccentSoft,
   },
   detectedBadgeText: {
     fontSize: 10,
@@ -316,7 +335,22 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
   },
   inputDetected: {
     borderColor: colors.accent,
-    backgroundColor: 'rgba(0, 184, 217, 0.06)',
+    backgroundColor: colors.surfaceDetected,
+  },
+  inputError: {
+    borderColor: colors.error,
+  },
+  fieldError: {
+    fontSize: 12,
+    fontFamily: fontFamily.regular,
+    color: colors.error,
+    marginTop: space.xs,
+  },
+  itemsError: {
+    fontSize: 13,
+    fontFamily: fontFamily.medium,
+    color: colors.error,
+    marginBottom: space.sm,
   },
   row: { flexDirection: 'row', gap: 12 },
   half: { flex: 1 },

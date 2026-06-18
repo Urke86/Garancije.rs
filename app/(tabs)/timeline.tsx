@@ -8,7 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
@@ -84,6 +84,12 @@ export default function TimelineScreen() {
   useEffect(() => {
     loadReceipts();
   }, [loadReceipts]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadReceipts();
+    }, [loadReceipts]),
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -179,6 +185,9 @@ export default function TimelineScreen() {
                 style={[styles.chip, filter === f.key && styles.chipActive]}
                 onPress={() => setFilter(f.key)}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityState={{ selected: filter === f.key }}
+                accessibilityLabel={`Filter: ${f.label}`}
               >
                 <Text style={[styles.chipText, filter === f.key && styles.chipTextActive]}>
                   {f.label}

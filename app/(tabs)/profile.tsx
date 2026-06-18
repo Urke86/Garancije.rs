@@ -34,6 +34,7 @@ export default function ProfileScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<DeleteDialog>('closed');
   const [deleteError, setDeleteError] = useState('');
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -56,6 +57,13 @@ export default function ProfileScreen() {
   };
 
   const displayName = getGreetingName(user) || 'Korisnik';
+
+  const memberSinceLabel = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString('sr-RS', {
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'nedavno';
 
   return (
     <AppScreen>
@@ -82,13 +90,7 @@ export default function ProfileScreen() {
                   {user?.email}
                 </Text>
               </View>
-              <Text style={styles.memberSince}>
-                Član od{' '}
-                {new Date(user?.created_at || '').toLocaleDateString('sr-RS', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </Text>
+              <Text style={styles.memberSince}>Član od {memberSinceLabel}</Text>
             </View>
           </Card>
         </ScreenSection>
@@ -144,7 +146,7 @@ export default function ProfileScreen() {
           <Card style={styles.accountActionsCard}>
             <TouchableOpacity
               style={styles.signOutButton}
-              onPress={handleSignOut}
+              onPress={() => setShowSignOutModal(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Odjavi se"
@@ -155,6 +157,19 @@ export default function ProfileScreen() {
           </Card>
         </ScreenSection>
       </ScrollView>
+
+      <ConfirmModal
+        visible={showSignOutModal}
+        title="Odjava"
+        message="Da li ste sigurni da želite da se odjavite?"
+        confirmLabel="Odjavi se"
+        destructive
+        onConfirm={async () => {
+          setShowSignOutModal(false);
+          await handleSignOut();
+        }}
+        onCancel={() => setShowSignOutModal(false)}
+      />
 
       <ConfirmModal
         visible={deleteDialog === 'step1'}
@@ -260,7 +275,7 @@ const createStyles = (colors: AppColors) =>
     borderRadius: layout.radius - 2,
     paddingVertical: space.lg - 2,
     borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.35)',
+    borderColor: colors.borderErrorSoft,
     backgroundColor: colors.surface,
   },
   signOutText: {

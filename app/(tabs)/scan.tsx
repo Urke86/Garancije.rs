@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,11 @@ import {
   ActivityIndicator,
   Platform,
   ScrollView,
+  Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
 import { Camera, Image as ImageIcon, Scan } from 'lucide-react-native';
 import { AppScreen } from '@/components/ui/AppScreen';
@@ -27,7 +27,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
 
-type ScanPhase = 'idle' | 'upload' | 'ocr';
+type ScanPhase = 'idle' | 'ocr';
 
 export default function ScanScreen() {
   const styles = useThemedStyles(createStyles);
@@ -38,6 +38,16 @@ export default function ScanScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [phase, setPhase] = useState<ScanPhase>('idle');
   const [error, setError] = useState('');
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setImage(null);
+      setPhase('idle');
+      setError('');
+      setPermissionDenied(false);
+    }, []),
+  );
 
   const loading = phase !== 'idle';
 
@@ -48,9 +58,12 @@ export default function ScanScreen() {
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permissionResult.granted) {
+      setPermissionDenied(true);
       setError('Potrebna je dozvola za pristup ' + (useCamera ? 'kameri' : 'galeriji'));
       return;
     }
+
+    setPermissionDenied(false);
 
     const result = useCamera
       ? await ImagePicker.launchCameraAsync({ quality: 0.8, base64: true })
@@ -64,37 +77,19 @@ export default function ScanScreen() {
 
   const processImage = async (asset: ImagePicker.ImagePickerAsset) => {
     if (!user) return;
-    setPhase('upload');
+    setPhase('ocr');
     setError('');
 
     try {
-      let prepared: { uri: string; base64: string };
+      let localUri = asset.uri;
 
-      if (Platform.OS === 'web') {
-        let base64Data = asset.base64;
-        if (!base64Data) {
-          setError('Nije moguće učitati sliku');
-          setPhase('idle');
-          return;
-        }
-        prepared = { uri: asset.uri, base64: base64Data };
-      } else {
-        prepared = await prepareImageForOcr(asset.uri, asset.base64);
+      if (Platform.OS !== 'web') {
+        const prepared = await prepareImageForOcr(asset.uri, asset.base64);
+        localUri = prepared.uri;
         setImage(prepared.uri);
+      } else {
+        setImage(asset.uri);
       }
-
-      const fileName = `${user.id}/${Date.now()}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from('receipt-images')
-        .upload(fileName, decode(prepared.base64), { contentType: 'image/jpeg' });
-
-      if (uploadError) {
-        setError('Greška pri otpremanju slike: ' + uploadError.message);
-        setPhase('idle');
-        return;
-      }
-
-      setPhase('ocr');
 
       if (Platform.OS === 'web') {
         const ocrKey = await savePendingOcr({
@@ -104,14 +99,12 @@ export default function ScanScreen() {
         });
         router.push({
           pathname: '/receipt/edit',
-          params: { image_url: fileName, ocr_key: ocrKey },
+          params: { local_image_uri: localUri, ocr_key: ocrKey },
         });
         return;
       }
 
-      const { data: ocrData, error: ocrError, detectedFields } = await runReceiptOcrFromUri(
-        prepared.uri,
-      );
+      const { data: ocrData, error: ocrError, detectedFields } = await runReceiptOcrFromUri(localUri);
       const warning = ocrError;
 
       const ocrKey = await savePendingOcr({
@@ -123,7 +116,7 @@ export default function ScanScreen() {
       router.push({
         pathname: '/receipt/edit',
         params: {
-          image_url: fileName,
+          local_image_uri: localUri,
           ocr_key: ocrKey,
         },
       });
@@ -135,11 +128,7 @@ export default function ScanScreen() {
   };
 
   const loadingMessage =
-    phase === 'upload'
-      ? 'Otpremam sliku...'
-      : phase === 'ocr'
-        ? 'Prepoznajem tekst na računu...'
-        : 'Obrađujem račun...';
+    phase === 'ocr' ? 'Prepoznajem tekst na računu...' : 'Obrađujem račun...';
 
   return (
     <AppScreen>
@@ -165,6 +154,16 @@ export default function ScanScreen() {
         {error ? (
           <View style={styles.errorBanner}>
             <Text style={styles.errorText}>{error}</Text>
+            {permissionDenied ? (
+              <TouchableOpacity
+                style={styles.settingsBtn}
+                onPress={() => Linking.openSettings()}
+                accessibilityRole="button"
+                accessibilityLabel="Otvori podešavanja"
+              >
+                <Text style={styles.settingsBtnText}>Otvori podešavanja</Text>
+              </TouchableOpacity>
+            ) : null}
           </View>
         ) : null}
 
@@ -173,9 +172,7 @@ export default function ScanScreen() {
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={styles.loadingText}>{loadingMessage}</Text>
             <Text style={styles.loadingSubtext}>
-              {phase === 'upload'
-                ? 'Slika se čuva na server'
-                : 'ML Kit lokalno prepoznaje latinicu i ćirilicu'}
+              ML Kit lokalno prepoznaje latinicu i ćirilicu
             </Text>
           </Card>
         ) : image ? (
@@ -229,15 +226,6 @@ export default function ScanScreen() {
   );
 }
 
-function decode(base64: string): Uint8Array {
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-
 const createStyles = (colors: AppColors) => StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: layout.gutter },
@@ -245,7 +233,7 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     marginBottom: space.lg - 2,
     backgroundColor: colors.accentLight,
     borderWidth: 1,
-    borderColor: 'rgba(0, 184, 217, 0.2)',
+    borderColor: colors.borderAccentSoft,
   },
   tipsTitle: {
     fontSize: 14,
@@ -265,13 +253,22 @@ const createStyles = (colors: AppColors) => StyleSheet.create({
     padding: space.lg - 2,
     marginBottom: space.lg,
     borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.2)',
+    borderColor: colors.borderErrorSoft,
   },
   errorText: {
     color: colors.error,
     fontSize: 14,
     fontFamily: fontFamily.medium,
     lineHeight: 20,
+  },
+  settingsBtn: {
+    marginTop: space.sm,
+    alignSelf: 'flex-start',
+  },
+  settingsBtnText: {
+    fontSize: 14,
+    fontFamily: fontFamily.semibold,
+    color: colors.primary,
   },
   actions: { gap: space.lg - 2, marginTop: space.sm },
   actionCard: { alignItems: 'center' },

@@ -58,7 +58,13 @@ export function ReceiptListCard({
 
   return (
     <Card style={styles.card} padded={false}>
-      <TouchableOpacity onPress={openReceipt} activeOpacity={0.85} style={styles.merchantRow}>
+      <TouchableOpacity
+        onPress={openReceipt}
+        activeOpacity={0.85}
+        style={styles.merchantRow}
+        accessibilityRole="button"
+        accessibilityLabel={`${storeName || 'Nepoznata prodavnica'}, ${formatSerbianDate(purchaseDate)}, ${items.length} proizvoda`}
+      >
         <View style={styles.thumbWrap}>
           {thumbLoading ? (
             <ActivityIndicator size="small" color={colors.primary} />

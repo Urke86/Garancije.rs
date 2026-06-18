@@ -26,10 +26,13 @@ import {
   type OcrReceiptResult,
 } from '@/lib/ocr-receipt';
 import { clearPendingOcr, loadPendingOcr } from '@/lib/ocr-pending';
+import { uploadReceiptImageFromUri, isLocalImageUri } from '@/lib/receipt-image-upload';
 import { loadReceiptImageLocalUri } from '@/lib/receipt-image-base64';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
+import { validateReceiptForm } from '@/lib/validation/receipt-form';
+import type { ReceiptFormField } from '@/lib/validation/receipt-form';
 
 export default function EditReceiptScreen() {
   const styles = useThemedStyles(createStyles);
@@ -37,7 +40,8 @@ export default function EditReceiptScreen() {
 
   const { user } = useAuth();
   const params = useLocalSearchParams<{
-    image_url: string;
+    image_url?: string;
+    local_image_uri?: string;
     ocr_key?: string;
     ocr_data?: string;
     ocr_warning?: string;
@@ -63,6 +67,7 @@ export default function EditReceiptScreen() {
   ]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ReceiptFormField, string>>>({});
 
   const applyOcrResult = useCallback(
     (
@@ -123,16 +128,21 @@ export default function EditReceiptScreen() {
     };
   }, [params.ocr_key]);
 
+  const previewImage = params.local_image_uri || params.image_url || '';
   const recognized = hasRecognizedFields(ocrData);
+
   const previewName = items.find((i) => i.name.trim())?.name || form.store_name || 'Novi račun';
 
   const handleRetryOcr = async () => {
-    if (!params.image_url || retryingOcr) return;
+    const imageSource = params.local_image_uri || params.image_url;
+    if (!imageSource || retryingOcr) return;
     setRetryingOcr(true);
     setError('');
 
     try {
-      const localUri = await loadReceiptImageLocalUri(params.image_url);
+      const localUri = isLocalImageUri(imageSource)
+        ? imageSource
+        : await loadReceiptImageLocalUri(imageSource);
       if (!localUri) {
         setError('Nije moguće učitati sliku za ponovni OCR.');
         return;
@@ -150,12 +160,29 @@ export default function EditReceiptScreen() {
 
   const handleSave = async () => {
     if (!user) return;
-    if (!form.store_name.trim()) {
-      setError('Unesite naziv prodavnice');
+    const validation = validateReceiptForm(form, items);
+    if (!validation.ok) {
+      setFieldErrors(validation.fieldErrors);
+      setError(validation.message || 'Proverite unete podatke');
       return;
     }
+    setFieldErrors({});
     setSaving(true);
     setError('');
+
+    let imagePath = params.image_url || '';
+    if (params.local_image_uri) {
+      const { path, error: uploadErr } = await uploadReceiptImageFromUri(
+        user.id,
+        params.local_image_uri,
+      );
+      if (uploadErr || !path) {
+        setSaving(false);
+        setError(uploadErr || 'Greška pri otpremanju slike');
+        return;
+      }
+      imagePath = path;
+    }
 
     const { currency: _currency, ...persistForm } = form;
 
@@ -163,7 +190,7 @@ export default function EditReceiptScreen() {
       user.id,
       {
         ...persistForm,
-        image_url: params.image_url || '',
+        image_url: imagePath,
         raw_ocr_text: ocrData.raw_text || '',
       },
       items,
@@ -185,7 +212,12 @@ export default function EditReceiptScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Nazad"
+          >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerText}>
@@ -200,11 +232,11 @@ export default function EditReceiptScreen() {
           </View>
         </View>
 
-        {params.image_url ? (
-          <ReceiptPhotoHero imageStored={params.image_url} productName={previewName} />
+        {previewImage ? (
+          <ReceiptPhotoHero imageStored={previewImage} productName={previewName} />
         ) : null}
 
-        {params.image_url ? (
+        {previewImage ? (
           <TouchableOpacity
             style={styles.retryOcrBtn}
             onPress={handleRetryOcr}
@@ -279,6 +311,7 @@ export default function EditReceiptScreen() {
           onChangeForm={(patch) => setForm((f) => ({ ...f, ...patch }))}
           onChangeItems={setItems}
           autoDetectedFields={detectedFields}
+          fieldErrors={fieldErrors}
         />
 
         <PrimaryButton
@@ -325,7 +358,7 @@ const createStyles = (colors: AppColors) =>
       marginBottom: space.md,
       borderRadius: layout.radius - 6,
       borderWidth: 1,
-      borderColor: 'rgba(6, 43, 95, 0.15)',
+      borderColor: colors.borderPrimarySoft,
       backgroundColor: colors.surface,
     },
     retryOcrText: {
@@ -342,7 +375,7 @@ const createStyles = (colors: AppColors) =>
       padding: space.md,
       marginBottom: space.md,
       borderWidth: 1,
-      borderColor: 'rgba(0, 184, 217, 0.25)',
+      borderColor: colors.borderAccentSoft,
     },
     infoText: {
       flex: 1,
@@ -357,7 +390,7 @@ const createStyles = (colors: AppColors) =>
       padding: space.md,
       marginBottom: space.md,
       borderWidth: 1,
-      borderColor: 'rgba(220, 38, 38, 0.2)',
+      borderColor: colors.borderErrorSoft,
     },
     warningText: {
       fontSize: 13,

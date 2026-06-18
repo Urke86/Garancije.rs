@@ -11,6 +11,7 @@ import {
   OFFSET_OPTIONS,
 } from '@/lib/notification-preferences';
 import { registerForPushNotifications } from '@/lib/notifications';
+import { InlineErrorBanner } from '@/components/ui/InlineErrorBanner';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
@@ -24,6 +25,7 @@ export function NotificationSettingsCard() {
   const [offsets, setOffsets] = useState<number[]>([30, 14, 7, 1]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -41,10 +43,16 @@ export function NotificationSettingsCard() {
   const save = async (nextEnabled: boolean, nextOffsets: number[]) => {
     if (!user) return;
     setSaving(true);
-    await upsertNotificationPreferences(user.id, {
+    setSaveError('');
+    const { error } = await upsertNotificationPreferences(user.id, {
       enabled: nextEnabled,
       offsets_days: nextOffsets,
     });
+    if (error) {
+      setSaveError('Nije moguće sačuvati podešavanja. Pokušajte ponovo.');
+      setSaving(false);
+      return;
+    }
     if (nextEnabled) {
       await registerForPushNotifications(user.id);
     }
@@ -81,7 +89,10 @@ export function NotificationSettingsCard() {
         </View>
         <View style={styles.headerText}>
           <Text style={styles.title}>Podsetnici garancije</Text>
-          <Text style={styles.subtitle}>Push obaveštenja pre isteka garancije</Text>
+          <Text style={styles.subtitle}>
+            Push obaveštenja pre isteka garancije. Podsetnici ostaju u aplikaciji; push stiže
+            samo ako su obaveštenja uključena.
+          </Text>
         </View>
         <Switch
           value={enabled}
@@ -91,6 +102,8 @@ export function NotificationSettingsCard() {
           disabled={saving}
         />
       </View>
+
+      <InlineErrorBanner message={saveError} />
 
       {enabled ? (
         <View style={styles.offsets}>
@@ -105,6 +118,9 @@ export function NotificationSettingsCard() {
                   onPress={() => toggleOffset(opt.days)}
                   disabled={saving}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={opt.label}
                 >
                   <Text style={[styles.chipText, active && styles.chipTextActive]}>
                     {opt.label}
