@@ -68,6 +68,8 @@ export function usePushNotifications() {
   }, [user, register]);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     const sub = Notifications.addNotificationResponseReceivedListener(handleNotificationResponse);
 
     // Kad je app bio zatvoren, tap samo pokrene app — listener još nije registrovan.

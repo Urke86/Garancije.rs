@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 import { colors } from '@/lib/colors';
 
 Notifications.setNotificationHandler({
@@ -31,14 +32,14 @@ export async function ensureAndroidNotificationChannels(lightColor?: string): Pr
   const channelColor = lightColor || colors.primary;
 
   await Notifications.setNotificationChannelAsync('reminders', {
-    name: 'Podsetnici garancije',
+    name: t('notifications.channelReminders'),
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: channelColor,
     sound: 'default',
   });
   await Notifications.setNotificationChannelAsync('app_updates', {
-    name: 'Ažuriranja aplikacije',
+    name: t('notifications.channelAppUpdates'),
     importance: Notifications.AndroidImportance.HIGH,
     vibrationPattern: [0, 250, 250, 250],
     lightColor: channelColor,

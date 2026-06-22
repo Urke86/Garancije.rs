@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, Linking } from 'react-native';
 import { Bell, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { getPushPermissionStatus, requestPushPermissions } from '@/lib/notifications';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function NotificationPermissionBanner({ onPermissionGranted }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -49,18 +51,20 @@ export function NotificationPermissionBanner({ onPermissionGranted }: Props) {
       disabled={loading}
       accessibilityRole="button"
       accessibilityLabel={
-        status === 'denied' ? 'Otvori podešavanja obaveštenja' : 'Uključi obaveštenja'
+        status === 'denied'
+          ? t('notifications.bannerOpenSettings_a11y')
+          : t('notifications.bannerEnable_a11y')
       }
     >
       <View style={styles.iconWrap}>
         <Bell size={20} color={colors.primary} />
       </View>
       <View style={styles.textCol}>
-        <Text style={styles.title}>Uključite obaveštenja</Text>
+        <Text style={styles.title}>{t('notifications.bannerTitle')}</Text>
         <Text style={styles.body}>
           {status === 'denied'
-            ? 'Obaveštenja su isključena u podešavanjima telefona. Omogućite ih da ne propustite garanciju.'
-            : 'Primajte push podsetnike pre isteka garancije — na vreme za reklamaciju.'}
+            ? t('notifications.bannerBodyDenied')
+            : t('notifications.bannerBodyUndetermined')}
         </Text>
       </View>
       <ChevronRight size={20} color={colors.textMuted} />

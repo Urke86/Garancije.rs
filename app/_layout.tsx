@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+import '@/lib/i18n';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { ThemeProvider } from '@/contexts/ThemeContext';
+import { LocaleProvider } from '@/contexts/LocaleContext';
 import { ThemeAppearanceBootstrap } from '@/components/ThemeAppearanceBootstrap';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PushNotificationsBootstrap } from '@/components/PushNotificationsBootstrap';
@@ -53,21 +55,23 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AuthProvider>
-          <ThemeAppearanceBootstrap />
-          <PushNotificationsBootstrap />
-          <PasswordRecoveryBootstrap />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="receipt" />
-            <Stack.Screen name="reminders" />
-            <Stack.Screen name="auth/callback" />
-            <Stack.Screen name="auth/reset-password" />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </AuthProvider>
+        <LocaleProvider>
+          <AuthProvider>
+            <ThemeAppearanceBootstrap />
+            <PushNotificationsBootstrap />
+            <PasswordRecoveryBootstrap />
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="receipt" />
+              <Stack.Screen name="reminders" />
+              <Stack.Screen name="auth/callback" />
+              <Stack.Screen name="auth/reset-password" />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </AuthProvider>
+        </LocaleProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

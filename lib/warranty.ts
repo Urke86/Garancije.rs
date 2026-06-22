@@ -1,18 +1,57 @@
-export const CATEGORIES = [
-  { id: 'appliances', label: 'Bela tehnika', defaultMonths: 24 },
-  { id: 'electronics', label: 'Elektronika', defaultMonths: 24 },
-  { id: 'footwear', label: 'Obuća', defaultMonths: 6 },
-  { id: 'furniture', label: 'Nameštaj', defaultMonths: 24 },
-  { id: 'clothing', label: 'Odeća', defaultMonths: 6 },
-  { id: 'tools', label: 'Alati', defaultMonths: 24 },
-  { id: 'other', label: 'Ostalo', defaultMonths: 24 },
+import { t, getCurrentLocale } from '@/lib/i18n';
+import { getDateLocale } from '@/lib/locale-storage';
+import type { AppLocale } from '@/lib/locale-storage';
+
+export const CATEGORY_IDS = [
+  'appliances',
+  'electronics',
+  'footwear',
+  'furniture',
+  'clothing',
+  'tools',
+  'other',
 ] as const;
 
-export type CategoryId = (typeof CATEGORIES)[number]['id'];
+export type CategoryId = (typeof CATEGORY_IDS)[number];
+
+const CATEGORY_LABEL_KEYS: Record<CategoryId, string> = {
+  appliances: 'warranty.categoryAppliances',
+  electronics: 'warranty.categoryElectronics',
+  footwear: 'warranty.categoryFootwear',
+  furniture: 'warranty.categoryFurniture',
+  clothing: 'warranty.categoryClothing',
+  tools: 'warranty.categoryTools',
+  other: 'warranty.categoryOther',
+};
+
+const DEFAULT_MONTHS: Record<CategoryId, number> = {
+  appliances: 24,
+  electronics: 24,
+  footwear: 6,
+  furniture: 24,
+  clothing: 6,
+  tools: 24,
+  other: 24,
+};
+
+export function getCategories() {
+  return CATEGORY_IDS.map((id) => ({
+    id,
+    label: t(CATEGORY_LABEL_KEYS[id]),
+    defaultMonths: DEFAULT_MONTHS[id],
+  }));
+}
+
+/** Prefer getCategories() so labels follow active locale. */
+export const CATEGORIES = getCategories();
+
+export function getCategoryLabel(category: string): string {
+  const key = CATEGORY_LABEL_KEYS[category as CategoryId];
+  return key ? t(key) : t('warranty.categoryOther');
+}
 
 export function getDefaultWarrantyMonths(category: string): number {
-  const found = CATEGORIES.find((c) => c.id === category);
-  return found?.defaultMonths ?? 24;
+  return DEFAULT_MONTHS[category as CategoryId] ?? 24;
 }
 
 export function calculateWarrantyExpiry(purchaseDate: string, months: number): string {
@@ -37,17 +76,23 @@ export function getWarrantyStatus(expiryDate: string): 'active' | 'expiring' | '
 }
 
 export function getWarrantyStatusLabel(status: 'active' | 'expiring' | 'expired'): string {
-  if (status === 'expired') return 'Istekla';
-  if (status === 'expiring') return 'Ističe uskoro';
-  return 'Aktivna';
+  if (status === 'expired') return t('warranty.statusExpired');
+  if (status === 'expiring') return t('warranty.statusExpiring');
+  return t('warranty.statusActive');
 }
 
-export function formatSerbianDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('sr-RS', {
+export function formatLocalizedDate(dateStr: string, locale?: AppLocale): string {
+  const loc = getDateLocale(locale ?? getCurrentLocale());
+  return new Date(dateStr).toLocaleDateString(loc, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+}
+
+/** @deprecated use formatLocalizedDate */
+export function formatSerbianDate(dateStr: string): string {
+  return formatLocalizedDate(dateStr, 'sr');
 }
 
 export interface WarrantyRemainingParts {
@@ -61,16 +106,17 @@ export interface WarrantyRemainingInfo {
   statusLabel: string;
   expired: boolean;
   daysRemaining: number;
-  /** npr. "542 dana aktivne garancije" ili "Istekla pre 12 dana" */
   daysLabel: string;
   parts: WarrantyRemainingParts;
-  /** npr. "Još 1 godinu, 2 meseca, 5 dana" */
   remainingLabel: string;
-  /** Datum isteka, lokalizovan */
   expiryLabel: string;
 }
 
-function pluralSr(count: number, one: string, few: string, many: string): string {
+function pluralUnit(count: number, one: string, few: string, many: string): string {
+  const locale = getCurrentLocale();
+  if (locale === 'en') {
+    return count === 1 ? one : few;
+  }
   const n = Math.abs(count);
   const mod10 = n % 10;
   const mod100 = n % 100;
@@ -83,15 +129,30 @@ function pluralSr(count: number, one: string, few: string, many: string): string
 function formatParts(parts: WarrantyRemainingParts, prefix: string): string {
   const chunks: string[] = [];
   if (parts.years > 0) {
-    const w = pluralSr(parts.years, 'godinu', 'godine', 'godina');
+    const w = pluralUnit(
+      parts.years,
+      t('warranty.unitYear_one'),
+      t('warranty.unitYear_few'),
+      t('warranty.unitYear_many'),
+    );
     chunks.push(`${parts.years} ${w}`);
   }
   if (parts.months > 0) {
-    const w = pluralSr(parts.months, 'mesec', 'meseca', 'meseci');
+    const w = pluralUnit(
+      parts.months,
+      t('warranty.unitMonth_one'),
+      t('warranty.unitMonth_few'),
+      t('warranty.unitMonth_many'),
+    );
     chunks.push(`${parts.months} ${w}`);
   }
   if (parts.days > 0 || chunks.length === 0) {
-    const w = pluralSr(parts.days, 'dan', 'dana', 'dana');
+    const w = pluralUnit(
+      parts.days,
+      t('warranty.unitDay_one'),
+      t('warranty.unitDay_few'),
+      t('warranty.unitDay_many'),
+    );
     chunks.push(`${parts.days} ${w}`);
   }
   return `${prefix}${chunks.join(', ')}`;
@@ -131,7 +192,7 @@ export function getWarrantyRemainingInfo(expiryDate: string): WarrantyRemainingI
   const status = getWarrantyStatus(expiryDate);
   const days = getDaysUntilExpiry(expiryDate);
   const expired = days <= 0;
-  const expiryLabel = formatSerbianDate(expiryDate);
+  const expiryLabel = formatLocalizedDate(expiryDate);
   const statusLabel = getWarrantyStatusLabel(status);
 
   if (expired) {
@@ -144,13 +205,13 @@ export function getWarrantyRemainingInfo(expiryDate: string): WarrantyRemainingI
       daysRemaining: days,
       daysLabel:
         days === 0
-          ? 'Garancija je istekla danas'
-          : `Istekla pre ${absDays} ${pluralSr(absDays, 'dana', 'dana', 'dana')}`,
+          ? t('warranty.expiredToday')
+          : t('warranty.expiredDaysAgo', { count: absDays }),
       parts: expiredParts,
       remainingLabel:
         days === 0
-          ? 'Garancija je istekla danas'
-          : formatParts(expiredParts, 'Istekla pre '),
+          ? t('warranty.expiredToday')
+          : formatParts(expiredParts, t('warranty.expiredPrefix')),
       expiryLabel,
     };
   }
@@ -161,9 +222,9 @@ export function getWarrantyRemainingInfo(expiryDate: string): WarrantyRemainingI
     statusLabel,
     expired: false,
     daysRemaining: days,
-    daysLabel: `${days} ${pluralSr(days, 'dan', 'dana', 'dana')} aktivne garancije`,
+    daysLabel: t('warranty.activeDaysRemaining', { count: days }),
     parts,
-    remainingLabel: formatParts(parts, 'Još '),
+    remainingLabel: formatParts(parts, t('warranty.remainingPrefix')),
     expiryLabel,
   };
 }

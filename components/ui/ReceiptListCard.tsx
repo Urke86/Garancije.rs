@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Receipt, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
 import { formatSerbianDate } from '@/lib/warranty';
@@ -38,6 +39,7 @@ export function ReceiptListCard({
   receiptItems,
   onPress,
 }: ReceiptListCardProps) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -63,7 +65,11 @@ export function ReceiptListCard({
         activeOpacity={0.85}
         style={styles.merchantRow}
         accessibilityRole="button"
-        accessibilityLabel={`${storeName || 'Nepoznata prodavnica'}, ${formatSerbianDate(purchaseDate)}, ${items.length} proizvoda`}
+        accessibilityLabel={t('timeline.listCard_a11y', {
+          store: storeName || t('common.unknownStore'),
+          date: formatSerbianDate(purchaseDate),
+          count: items.length,
+        })}
       >
         <View style={styles.thumbWrap}>
           {thumbLoading ? (
@@ -75,12 +81,12 @@ export function ReceiptListCard({
           )}
         </View>
         <View style={styles.merchantInfo}>
-          <Text style={styles.merchantLabel}>Prodavnica</Text>
+          <Text style={styles.merchantLabel}>{t('common.store')}</Text>
           <Text style={styles.merchantName} numberOfLines={1}>
-            {storeName || 'Nepoznata prodavnica'}
+            {storeName || t('common.unknownStore')}
           </Text>
           <Text style={styles.merchantMeta}>
-            {items.length} {items.length === 1 ? 'proizvod' : 'proizvoda'} · ukupno{' '}
+            {items.length} {t('common.product', { count: items.length })} · {t('common.total')}{' '}
             {Number(totalAmount).toLocaleString('sr-RS')} RSD
           </Text>
         </View>
@@ -107,14 +113,12 @@ export function ReceiptListCard({
       ) : (
         <TouchableOpacity onPress={openReceipt} activeOpacity={0.85}>
           <View style={styles.fallback}>
-            <Text style={styles.fallbackTitle}>{storeName || 'Račun bez stavki'}</Text>
+            <Text style={styles.fallbackTitle}>{storeName || t('timeline.listCardNoItemsTitle')}</Text>
             <View style={styles.fallbackRow}>
-              <Text style={styles.fallbackLabel}>Datum kupovine proizvoda</Text>
+              <Text style={styles.fallbackLabel}>{t('timeline.listCardPurchaseDateLabel')}</Text>
               <Text style={styles.fallbackValue}>{formatSerbianDate(purchaseDate)}</Text>
             </View>
-            <Text style={styles.fallbackHint}>
-              Nema unetih proizvoda. Dodirnite da uredite račun i dopunite stavke.
-            </Text>
+            <Text style={styles.fallbackHint}>{t('timeline.listCardNoItemsHint')}</Text>
           </View>
         </TouchableOpacity>
       )}

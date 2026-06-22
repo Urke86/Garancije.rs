@@ -1,21 +1,21 @@
 import { TouchableOpacity, Text, StyleSheet, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
+
 interface Props {
   onPress: () => void;
   loading?: boolean;
   label?: string;
 }
 
-export function GoogleSignInButton({
-  onPress,
-  loading,
-  label = 'Nastavi sa Google nalogom',
-}: Props) {
+export function GoogleSignInButton({ onPress, loading, label }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const buttonLabel = label ?? t('auth.googleSignIn');
 
   return (
     <TouchableOpacity
@@ -24,7 +24,7 @@ export function GoogleSignInButton({
       disabled={loading}
       activeOpacity={0.8}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={buttonLabel}
       accessibilityState={{ disabled: loading, busy: loading }}
     >
       {loading ? (
@@ -34,7 +34,7 @@ export function GoogleSignInButton({
           <View style={styles.iconWrap}>
             <Ionicons name="logo-google" size={20} color="#4285F4" />
           </View>
-          <Text style={styles.text}>{label}</Text>
+          <Text style={styles.text}>{buttonLabel}</Text>
         </>
       )}
     </TouchableOpacity>

@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScrollInsets } from '@/hooks/useScrollInsets';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import { useColors } from '@/contexts/ThemeContext';
+import { useDateLocale } from '@/contexts/LocaleContext';
 import type { AppColors } from '@/lib/theme';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
@@ -21,11 +23,14 @@ import { NotificationSettingsCard } from '@/components/ui/NotificationSettingsCa
 import { LegalLinks } from '@/components/ui/LegalLinks';
 import { ConfirmModal } from '@/components/ui/ConfirmModal';
 import { ThemeToggleCard } from '@/components/ui/ThemeToggleCard';
+import { LanguageToggleCard } from '@/components/ui/LanguageToggleCard';
 import { useReminderBadge } from '@/hooks/useReminderBadge';
 
 type DeleteDialog = 'closed' | 'step1' | 'step2' | 'error';
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const { user, signOut, deleteAccount } = useAuth();
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
@@ -56,14 +61,14 @@ export default function ProfileScreen() {
     router.replace('/(auth)');
   };
 
-  const displayName = getGreetingName(user) || 'Korisnik';
+  const displayName = getGreetingName(user) || t('common.user');
 
   const memberSinceLabel = user?.created_at
-    ? new Date(user.created_at).toLocaleDateString('sr-RS', {
+    ? new Date(user.created_at).toLocaleDateString(dateLocale, {
         month: 'long',
         year: 'numeric',
       })
-    : 'nedavno';
+    : t('common.recently');
 
   return (
     <AppScreen>
@@ -75,9 +80,9 @@ export default function ProfileScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <ScreenHeader title="Profil" subtitle="Podešavanja naloga" />
+        <ScreenHeader title={t('profile.title')} subtitle={t('profile.subtitle')} />
 
-        <ScreenSection title="Nalog" first>
+        <ScreenSection title={t('profile.account')} first>
           <Card style={styles.profileCard}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{getUserInitials(user)}</Text>
@@ -90,50 +95,51 @@ export default function ProfileScreen() {
                   {user?.email}
                 </Text>
               </View>
-              <Text style={styles.memberSince}>Član od {memberSinceLabel}</Text>
+              <Text style={styles.memberSince}>
+                {t('common.memberSince', { date: memberSinceLabel })}
+              </Text>
             </View>
           </Card>
         </ScreenSection>
 
-        <ScreenSection title="Izgled">
+        <ScreenSection title={t('common.language')}>
+          <LanguageToggleCard />
+        </ScreenSection>
+
+        <ScreenSection title={t('profile.appearance')}>
           <ThemeToggleCard />
         </ScreenSection>
 
-        <ScreenSection title="Podsetnici">
+        <ScreenSection title={t('profile.reminders')}>
           <NavRow
             icon={BellRing}
-            title="Moji podsetnici"
-            subtitle="Aktivni, odloženi i završeni podsetnici garancije"
+            title={t('profile.myReminders')}
+            subtitle={t('profile.myRemindersSubtitle')}
             badge={reminderBadge}
             onPress={() => router.push('/reminders')}
             accessibilityLabel={
               reminderBadge > 0
-                ? `Moji podsetnici, ${reminderBadge} aktivnih`
-                : 'Moji podsetnici'
+                ? t('profile.myRemindersActive_a11y', { count: reminderBadge })
+                : t('profile.myReminders_a11y')
             }
           />
         </ScreenSection>
 
-        <ScreenSection title="Obaveštenja">
+        <ScreenSection title={t('profile.notifications')}>
           <NotificationSettingsCard />
         </ScreenSection>
 
-        <ScreenSection title="O aplikaciji">
+        <ScreenSection title={t('profile.about')}>
           <Card style={styles.aboutCard} clip>
             <BrandWordmark size="md" style={styles.wordmark} />
-            <Text style={styles.infoText}>
-              Garancije.rs vam pomaže da digitalizujete fiskalne račune, pratite garancije i nikad
-              ne propustite rok za reklamaciju.
-            </Text>
+            <Text style={styles.infoText}>{t('profile.aboutText')}</Text>
             <DigitalReceiptFeature embedded />
           </Card>
         </ScreenSection>
 
-        <ScreenSection title="Pravno">
+        <ScreenSection title={t('profile.legal')}>
           <Card style={styles.legalCard}>
-            <Text style={styles.legalIntro}>
-              Informacije o obradi ličnih podataka i uslovima korišćenja aplikacije.
-            </Text>
+            <Text style={styles.legalIntro}>{t('profile.legalIntro')}</Text>
             <LegalLinks
               variant="profile"
               onDeleteAccount={() => setDeleteDialog('step1')}
@@ -142,17 +148,17 @@ export default function ProfileScreen() {
           </Card>
         </ScreenSection>
 
-        <ScreenSection title="Nalog i bezbednost">
+        <ScreenSection title={t('profile.accountSecurity')}>
           <Card style={styles.accountActionsCard}>
             <TouchableOpacity
               style={styles.signOutButton}
               onPress={() => setShowSignOutModal(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Odjavi se"
+              accessibilityLabel={t('profile.signOut_a11y')}
             >
               <LogOut size={20} color={colors.error} />
-              <Text style={styles.signOutText}>Odjavi se</Text>
+              <Text style={styles.signOutText}>{t('profile.signOut')}</Text>
             </TouchableOpacity>
           </Card>
         </ScreenSection>
@@ -160,9 +166,9 @@ export default function ProfileScreen() {
 
       <ConfirmModal
         visible={showSignOutModal}
-        title="Odjava"
-        message="Da li ste sigurni da želite da se odjavite?"
-        confirmLabel="Odjavi se"
+        title={t('profile.signOutTitle')}
+        message={t('profile.signOutMessage')}
+        confirmLabel={t('profile.signOut')}
         destructive
         onConfirm={async () => {
           setShowSignOutModal(false);
@@ -173,9 +179,9 @@ export default function ProfileScreen() {
 
       <ConfirmModal
         visible={deleteDialog === 'step1'}
-        title="Obriši nalog"
-        message="Ova radnja je trajna. Biće obrisani svi računi, fotografije, garancije, podsetnici i push tokeni. Nalog se ne može povratiti."
-        confirmLabel="Nastavi"
+        title={t('profile.deleteAccountTitle')}
+        message={t('profile.deleteAccountMessage')}
+        confirmLabel={t('common.continue')}
         destructive
         onConfirm={() => setDeleteDialog('step2')}
         onCancel={() => setDeleteDialog('closed')}
@@ -183,9 +189,9 @@ export default function ProfileScreen() {
 
       <ConfirmModal
         visible={deleteDialog === 'step2'}
-        title="Potvrda brisanja"
-        message="Da li ste sigurni? Ovo je poslednji korak."
-        confirmLabel="Da, obriši sve"
+        title={t('profile.deleteConfirmTitle')}
+        message={t('profile.deleteConfirmMessage')}
+        confirmLabel={t('common.yesDeleteAll')}
         destructive
         loading={deleting}
         onConfirm={runDeleteAccount}
@@ -194,9 +200,9 @@ export default function ProfileScreen() {
 
       <ConfirmModal
         visible={deleteDialog === 'error'}
-        title="Greška"
+        title={t('common.error')}
         message={deleteError}
-        confirmLabel="U redu"
+        confirmLabel={t('common.ok')}
         alertOnly
         onConfirm={() => setDeleteDialog('closed')}
         onCancel={() => setDeleteDialog('closed')}

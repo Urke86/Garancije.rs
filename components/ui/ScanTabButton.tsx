@@ -12,6 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Receipt, Plus } from 'lucide-react-native';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
@@ -23,6 +24,7 @@ interface Props extends Omit<BottomTabBarButtonProps, 'children'> {
 const FAB_SIZE = 64;
 
 export function ScanTabButton({ onPress, accessibilityState, bottomInset = 0 }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -68,8 +70,8 @@ export function ScanTabButton({ onPress, accessibilityState, bottomInset = 0 }: 
       style={[styles.wrap, { top: lift }]}
       accessibilityRole="button"
       accessibilityState={accessibilityState}
-      accessibilityLabel="Dodaj račun"
-      accessibilityHint="Skenirajte ili izaberite fiskalni račun"
+      accessibilityLabel={t('tabs.add_a11y')}
+      accessibilityHint={t('tabs.addHint_a11y')}
     >
       <Animated.View style={fabStyle}>
         {!focused ? <View style={styles.halo} pointerEvents="none" /> : null}

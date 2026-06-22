@@ -1,5 +1,6 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { FileText, Shield, Mail, Trash2 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { openPrivacyContact, openPrivacyPolicy, openTerms } from '@/lib/legal-links';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -10,32 +11,31 @@ type Variant = 'profile' | 'consent';
 
 interface Props {
   variant?: Variant;
-  /** Tekst pre linkova; podrazumevano poruka za registraciju. */
   consentIntro?: string;
   onDeleteAccount?: () => void;
   deleting?: boolean;
 }
 
-const DEFAULT_CONSENT_INTRO = 'Registracijom prihvatate';
-
 export function LegalLinks({
   variant = 'profile',
-  consentIntro = DEFAULT_CONSENT_INTRO,
+  consentIntro,
   onDeleteAccount,
   deleting = false,
 }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
+  const intro = consentIntro ?? t('legal.consentIntroDefault');
 
   if (variant === 'consent') {
     return (
       <Text style={styles.consent}>
-        {consentIntro}{' '}
+        {intro}{' '}
         <Text style={styles.consentLink} onPress={openPrivacyPolicy}>
-          Politiku privatnosti
+          {t('legal.privacyPolicy')}
         </Text>{' '}
-        i{' '}
+        {t('legal.consentJoiner')}{' '}
         <Text style={styles.consentLink} onPress={openTerms}>
-          Uslove korišćenja
+          {t('legal.termsOfUse')}
         </Text>
         .
       </Text>
@@ -44,13 +44,13 @@ export function LegalLinks({
 
   return (
     <View style={styles.list}>
-      <LegalRow icon={Shield} label="Politika privatnosti" onPress={openPrivacyPolicy} />
-      <LegalRow icon={FileText} label="Uslovi korišćenja" onPress={openTerms} />
-      <LegalRow icon={Mail} label="Kontakt za privatnost" onPress={openPrivacyContact} isLast={!onDeleteAccount} />
+      <LegalRow icon={Shield} label={t('legal.privacyPolicy')} onPress={openPrivacyPolicy} />
+      <LegalRow icon={FileText} label={t('legal.termsOfUse')} onPress={openTerms} />
+      <LegalRow icon={Mail} label={t('legal.privacyContact')} onPress={openPrivacyContact} isLast={!onDeleteAccount} />
       {onDeleteAccount ? (
         <LegalRow
           icon={Trash2}
-          label={deleting ? 'Brisanje…' : 'Obriši nalog'}
+          label={deleting ? t('legal.deletingAccount') : t('legal.deleteAccount')}
           onPress={onDeleteAccount}
           destructive
           disabled={deleting}

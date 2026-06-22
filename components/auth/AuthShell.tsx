@@ -15,9 +15,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { ArrowLeft } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { officialLogo, getBrandLogoSize } from '@/lib/branding';
 import { BrandWordmark } from '@/components/BrandWordmark';
 import { AuthBenefits } from './AuthBenefits';
+import { LanguageSwitcherCompact } from '@/components/ui/LanguageToggleCard';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
@@ -32,6 +34,7 @@ interface Props {
 const WIDE_BREAKPOINT = 768;
 
 export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -64,14 +67,14 @@ export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props
             { width: logoSize.width, height: logoSize.height, marginBottom: -wordmarkLift },
           ]}
           resizeMode="contain"
-          accessibilityLabel="Garancije.rs logo"
+          accessibilityLabel={t('auth.logo_a11y')}
         />
         <BrandWordmark
           size={isWide ? 'xl' : 'lg'}
           style={[styles.wordmark, { marginLeft: Math.round(logoSize.width * 0.02) }]}
         />
       </View>
-      <Text style={[styles.tagline, { marginTop: 10 }]}>Čuvamo vaš račun. Čuvamo i garanciju.</Text>
+      <Text style={[styles.tagline, { marginTop: 10 }]}>{t('auth.tagline')}</Text>
       <AuthBenefits />
     </View>
   );
@@ -85,13 +88,14 @@ export function AuthShell({ children, cardTitle, cardSubtitle, showBack }: Props
         cardAnimStyle,
       ]}
     >
+      <LanguageSwitcherCompact />
       {showBack ? (
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backBtn}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           accessibilityRole="button"
-          accessibilityLabel="Nazad"
+          accessibilityLabel={t('common.back')}
         >
           <ArrowLeft size={22} color={colors.text} />
         </TouchableOpacity>

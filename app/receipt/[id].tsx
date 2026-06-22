@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
@@ -53,6 +54,7 @@ interface ReceiptRecord {
 }
 
 export default function ReceiptDetailScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -140,8 +142,8 @@ export default function ReceiptDetailScreen() {
   }, [edit]);
 
   const primaryName = useMemo(
-    () => receipt?.receipt_items?.[0]?.name || receipt?.store_name || 'Račun',
-    [receipt],
+    () => receipt?.receipt_items?.[0]?.name || receipt?.store_name || t('common.receipt'),
+    [receipt, t],
   );
 
   const runDelete = async () => {
@@ -175,7 +177,7 @@ export default function ReceiptDetailScreen() {
     const validation = validateReceiptForm(form, items);
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors);
-      setError(validation.message || 'Proverite unete podatke');
+      setError(validation.message || t('common.checkEnteredData'));
       return;
     }
     setFieldErrors({});
@@ -229,20 +231,20 @@ export default function ReceiptDetailScreen() {
             onPress={() => router.back()}
             style={styles.iconBtn}
             accessibilityRole="button"
-            accessibilityLabel="Nazad"
+            accessibilityLabel={t('common.back')}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
         <View style={styles.centered}>
           <Text style={styles.missing}>
-            {loadError ? 'Greška pri učitavanju računa' : 'Račun nije pronađen.'}
+            {loadError ? t('receipt.loadErrorTitle') : t('receipt.notFound')}
           </Text>
           {loadError ? (
             <Text style={styles.missingDetail}>{loadError}</Text>
           ) : null}
           <PrimaryButton
-            title={loadError ? 'Pokušaj ponovo' : 'Nazad na kupovine'}
+            title={loadError ? t('common.tryAgain') : t('common.backToPurchases')}
             onPress={() => (loadError ? loadReceipt() : router.replace('/(tabs)/timeline'))}
             style={styles.missingBtn}
           />
@@ -266,14 +268,14 @@ export default function ReceiptDetailScreen() {
             onPress={() => router.back()}
             style={styles.iconBtn}
             accessibilityRole="button"
-            accessibilityLabel="Nazad"
+            accessibilityLabel={t('common.back')}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.topBarCenter}>
-            <Text style={styles.screenTitle}>Detalji računa</Text>
+            <Text style={styles.screenTitle}>{t('receipt.detailTitle')}</Text>
             <Text style={styles.screenSubtitle} numberOfLines={1}>
-              {receipt.store_name || 'Kupovina'}
+              {receipt.store_name || t('common.purchase')}
             </Text>
           </View>
           <View style={styles.topBarActions}>
@@ -290,7 +292,7 @@ export default function ReceiptDetailScreen() {
               onPress={() => setShowDeleteModal(true)}
               style={styles.deleteBtn}
               accessibilityRole="button"
-              accessibilityLabel="Obriši račun"
+              accessibilityLabel={t('receipt.deleteReceipt_a11y')}
             >
               <Trash2 size={18} color={colors.error} />
             </TouchableOpacity>
@@ -310,7 +312,7 @@ export default function ReceiptDetailScreen() {
               fieldErrors={fieldErrors}
             />
             <PrimaryButton
-              title={saving ? 'Čuvam...' : 'Sačuvaj izmene'}
+              title={saving ? t('common.saving') : t('receipt.saveChanges')}
               onPress={handleSave}
               loading={saving}
               style={styles.saveBtn}
@@ -319,32 +321,30 @@ export default function ReceiptDetailScreen() {
         ) : (
           <>
             <Card style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Pregled kupovine</Text>
-              <SummaryRow label="Prodavnica" value={receipt.store_name || '—'} />
-              <SummaryRow label="Datum kupovine proizvoda" value={formatSerbianDate(receipt.purchase_date)} />
-              <SummaryRow label="Ukupan iznos računa" value={`${Number(receipt.total_amount).toLocaleString('sr-RS')} RSD`} muted />
-              {receipt.pib ? <SummaryRow label="PIB prodavnice" value={receipt.pib} muted /> : null}
+              <Text style={styles.summaryTitle}>{t('receipt.overviewTitle')}</Text>
+              <SummaryRow label={t('receipt.fieldStore')} value={receipt.store_name || '—'} />
+              <SummaryRow label={t('receipt.fieldPurchaseDate')} value={formatSerbianDate(receipt.purchase_date)} />
+              <SummaryRow label={t('receipt.fieldTotalAmount')} value={`${Number(receipt.total_amount).toLocaleString('sr-RS')} RSD`} muted />
+              {receipt.pib ? <SummaryRow label={t('receipt.fieldPib')} value={receipt.pib} muted /> : null}
               {receipt.receipt_number ? (
-                <SummaryRow label="Broj fiskalnog računa" value={receipt.receipt_number} muted />
+                <SummaryRow label={t('receipt.fieldReceiptNumber')} value={receipt.receipt_number} muted />
               ) : null}
             </Card>
 
             <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>Proizvodi i garancije</Text>
+              <Text style={styles.sectionTitle}>{t('receipt.productsSectionTitle')}</Text>
               {!hasSavedItems ? (
                 <TouchableOpacity onPress={() => setEditing(true)}>
-                  <Text style={styles.sectionAction}>Dopuni podatke</Text>
+                  <Text style={styles.sectionAction}>{t('receipt.completeData')}</Text>
                 </TouchableOpacity>
               ) : null}
             </View>
 
             {!hasSavedItems ? (
               <Card style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>Nema unetih proizvoda</Text>
-                <Text style={styles.emptyBody}>
-                  Dodajte proizvod, trajanje garancije i ostale podatke kako biste pratili rok isteka.
-                </Text>
-                <PrimaryButton title="Uredi račun" onPress={() => setEditing(true)} style={styles.emptyBtn} />
+                <Text style={styles.emptyTitle}>{t('receipt.noProductsTitle')}</Text>
+                <Text style={styles.emptyBody}>{t('receipt.noProductsBody')}</Text>
+                <PrimaryButton title={t('receipt.editReceipt')} onPress={() => setEditing(true)} style={styles.emptyBtn} />
               </Card>
             ) : (
               receipt.receipt_items.map((item) => (
@@ -366,13 +366,13 @@ export default function ReceiptDetailScreen() {
 
       <ConfirmModal
         visible={showDeleteModal}
-        title="Obriši račun"
+        title={t('receipt.deleteReceiptTitle')}
         message={
           deleteError
-            ? `Brisanje nije uspelo: ${deleteError}`
-            : 'Ova akcija je nepovratna. Račun, proizvodi i podsetnici biće obrisani.'
+            ? t('receipt.deleteFailed', { error: deleteError })
+            : t('receipt.deleteReceiptMessage')
         }
-        confirmLabel="Obriši"
+        confirmLabel={t('common.delete')}
         destructive
         loading={deleting}
         onConfirm={runDelete}

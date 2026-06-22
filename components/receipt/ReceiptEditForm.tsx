@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Plus, Trash2 } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { space } from '@/lib/spacing';
 import { CATEGORIES, getDefaultWarrantyMonths } from '@/lib/warranty';
@@ -40,6 +41,7 @@ export function ReceiptEditForm({
   autoDetectedFields = [],
   fieldErrors = {},
 }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const detected = new Set(autoDetectedFields);
@@ -67,17 +69,17 @@ export function ReceiptEditForm({
   return (
     <View style={styles.wrap}>
       <Card style={styles.section}>
-        <Text style={styles.sectionTitle}>Podaci o kupovini</Text>
+        <Text style={styles.sectionTitle}>{t('receipt.formPurchaseDataTitle')}</Text>
         <Field
-          label="Prodavnica"
+          label={t('receipt.fieldStore')}
           value={form.store_name}
           onChangeText={(v) => onChangeForm({ store_name: v })}
-          placeholder="Naziv prodavnice"
+          placeholder={t('receipt.formStorePlaceholder')}
           autoDetected={detected.has('store_name')}
           error={fieldErrors.store_name}
         />
         <Field
-          label="Datum kupovine proizvoda (GGGG-MM-DD)"
+          label={t('receipt.formDateLabel')}
           value={form.purchase_date}
           onChangeText={(v) => onChangeForm({ purchase_date: v })}
           placeholder="2025-10-04"
@@ -87,7 +89,7 @@ export function ReceiptEditForm({
         <View style={styles.row}>
           <View style={styles.half}>
             <Field
-              label="Ukupan iznos"
+              label={t('receipt.formTotalAmount')}
               value={form.total_amount}
               onChangeText={(v) => onChangeForm({ total_amount: v })}
               placeholder="0"
@@ -98,7 +100,7 @@ export function ReceiptEditForm({
           </View>
           <View style={styles.half}>
             <Field
-              label="Valuta"
+              label={t('receipt.formCurrency')}
               value={form.currency}
               onChangeText={(v) => onChangeForm({ currency: v.toUpperCase() })}
               placeholder="RSD"
@@ -109,19 +111,19 @@ export function ReceiptEditForm({
         <View style={styles.row}>
           <View style={styles.half}>
             <Field
-              label="PIB prodavnice"
+              label={t('receipt.fieldPib')}
               value={form.pib}
               onChangeText={(v) => onChangeForm({ pib: v })}
-              placeholder="PIB"
+              placeholder={t('receipt.formPibPlaceholder')}
               autoDetected={detected.has('pib')}
             />
           </View>
           <View style={styles.half}>
             <Field
-              label="Broj fiskalnog računa"
+              label={t('receipt.fieldReceiptNumber')}
               value={form.receipt_number}
               onChangeText={(v) => onChangeForm({ receipt_number: v })}
-              placeholder="Broj računa"
+              placeholder={t('receipt.formReceiptNumberPlaceholder')}
               autoDetected={detected.has('receipt_number')}
             />
           </View>
@@ -129,18 +131,16 @@ export function ReceiptEditForm({
       </Card>
 
       <View style={styles.productsHeader}>
-        <Text style={styles.productsTitle}>Proizvodi i garancije</Text>
+        <Text style={styles.productsTitle}>{t('receipt.productsSectionTitle')}</Text>
         <TouchableOpacity style={styles.addBtn} onPress={addItem}>
           <Plus size={18} color={colors.primary} />
-          <Text style={styles.addText}>Dodaj proizvod</Text>
+          <Text style={styles.addText}>{t('receipt.formAddProduct')}</Text>
         </TouchableOpacity>
       </View>
 
       {items.length === 0 ? (
         <Card style={styles.emptyProducts}>
-          <Text style={styles.emptyProductsText}>
-            Dodajte bar jedan proizvod sa nazivom i trajanjem garancije.
-          </Text>
+          <Text style={styles.emptyProductsText}>{t('receipt.formEmptyProducts')}</Text>
         </Card>
       ) : null}
 
@@ -154,7 +154,7 @@ export function ReceiptEditForm({
           style={[styles.itemCard, highlightItemIndex === index && styles.itemCardHighlight]}
         >
           <View style={styles.itemHeader}>
-            <Text style={styles.itemNumber}>Proizvod {index + 1}</Text>
+            <Text style={styles.itemNumber}>{t('receipt.formProductN', { n: index + 1 })}</Text>
             {items.length > 1 ? (
               <TouchableOpacity onPress={() => removeItem(index)} hitSlop={8}>
                 <Trash2 size={18} color={colors.error} />
@@ -162,14 +162,14 @@ export function ReceiptEditForm({
             ) : null}
           </View>
           <Field
-            label="Naziv proizvoda"
+            label={t('receipt.itemNamePlaceholder')}
             value={item.name}
             onChangeText={(v) => updateItem(index, 'name', v)}
-            placeholder="npr. Bojler novi"
+            placeholder={t('receipt.formProductNamePlaceholder')}
             autoDetected={detected.has('product_name') && index === 0}
             error={fieldErrors[`item_${index}_name`]}
           />
-          <Text style={styles.chipsLabel}>Kategorija</Text>
+          <Text style={styles.chipsLabel}>{t('receipt.fieldCategory')}</Text>
           <View style={styles.chips}>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
@@ -178,7 +178,7 @@ export function ReceiptEditForm({
                 onPress={() => updateItem(index, 'category', cat.id)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: item.category === cat.id }}
-                accessibilityLabel={`Kategorija: ${cat.label}`}
+                accessibilityLabel={t('receipt.formCategory_a11y', { label: cat.label })}
               >
                 <Text style={[styles.chipText, item.category === cat.id && styles.chipTextActive]}>
                   {cat.label}
@@ -189,7 +189,7 @@ export function ReceiptEditForm({
           <View style={styles.row}>
             <View style={styles.half}>
               <Field
-                label="Cena"
+                label={t('receipt.formPrice')}
                 value={item.price}
                 onChangeText={(v) => updateItem(index, 'price', v)}
                 placeholder="0"
@@ -199,7 +199,13 @@ export function ReceiptEditForm({
               />
             </View>
             <View style={styles.half}>
-              <Field label="Garancija (meseci)" value={item.warranty_months} onChangeText={(v) => updateItem(index, 'warranty_months', v)} placeholder="24" keyboardType="numeric" />
+              <Field
+                label={t('receipt.fieldWarrantyMonths')}
+                value={item.warranty_months}
+                onChangeText={(v) => updateItem(index, 'warranty_months', v)}
+                placeholder="24"
+                keyboardType="numeric"
+              />
             </View>
           </View>
         </Card>
@@ -225,6 +231,7 @@ function Field({
   autoDetected?: boolean;
   error?: string;
 }) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -234,7 +241,7 @@ function Field({
         <Text style={styles.fieldLabel}>{label}</Text>
         {autoDetected ? (
           <View style={styles.detectedBadge}>
-            <Text style={styles.detectedBadgeText}>Prepoznato</Text>
+            <Text style={styles.detectedBadgeText}>{t('common.recognized')}</Text>
           </View>
         ) : null}
       </View>

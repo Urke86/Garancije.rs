@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthInput } from '@/components/auth/AuthInput';
@@ -17,6 +18,7 @@ import type { AppColors } from '@/lib/theme';
 type ResetDialog = 'closed' | 'need_email' | 'confirm' | 'success' | 'error';
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
 
   const { signIn, signInWithGoogle, resetPassword } = useAuth();
@@ -33,7 +35,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!canSubmit) {
-      setError('Unesite email i lozinku (min. 6 karaktera)');
+      setError(t('auth.loginError'));
       return;
     }
     setLoading(true);
@@ -86,7 +88,7 @@ export default function LoginScreen() {
 
   return (
     <>
-    <AuthShell cardTitle="Dobrodošli nazad" cardSubtitle="Prijavite se na svoj nalog">
+    <AuthShell cardTitle={t('auth.welcomeBack')} cardSubtitle={t('auth.loginSubtitle')}>
       <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} />
 
       <AuthDivider />
@@ -95,17 +97,17 @@ export default function LoginScreen() {
 
       <View style={styles.form}>
         <AuthInput
-          label="E-pošta"
+          label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
           textContentType="emailAddress"
-          placeholder="vas@email.com"
+          placeholder={t('auth.emailPlaceholder')}
         />
         <AuthInput
-          label="Lozinka"
+          label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
           secureToggle
@@ -118,13 +120,13 @@ export default function LoginScreen() {
           onPress={handleForgotPassword}
           style={styles.forgotWrap}
           accessibilityRole="button"
-          accessibilityLabel="Zaboravili ste lozinku"
+          accessibilityLabel={t('auth.forgotPassword_a11y')}
         >
-          <Text style={styles.forgot}>Zaboravili ste lozinku?</Text>
+          <Text style={styles.forgot}>{t('auth.forgotPassword')}</Text>
         </TouchableOpacity>
 
         <AuthPrimaryButton
-          title="Prijavi se"
+          title={t('auth.signIn')}
           onPress={handleLogin}
           loading={loading}
           disabled={!canSubmit}
@@ -135,20 +137,20 @@ export default function LoginScreen() {
         onPress={() => router.push('/(auth)/register')}
         style={styles.linkRow}
         accessibilityRole="button"
-        accessibilityLabel="Registrujte se"
+        accessibilityLabel={t('auth.register_a11y')}
       >
-        <Text style={styles.linkMuted}>Nemate nalog? </Text>
-        <Text style={styles.link}>Registrujte se</Text>
+        <Text style={styles.linkMuted}>{t('auth.noAccount')} </Text>
+        <Text style={styles.link}>{t('auth.register')}</Text>
       </TouchableOpacity>
 
-      <LegalLinks variant="consent" consentIntro="Korišćenjem aplikacije prihvatate" />
+      <LegalLinks variant="consent" consentIntro={t('legal.consentIntroLogin')} />
     </AuthShell>
 
     <ConfirmModal
       visible={resetDialog === 'need_email'}
-      title="Reset lozinke"
-      message="Unesite adresu e-pošte u polje iznad, pa ponovo dodirnite „Zaboravili ste lozinku?“"
-      confirmLabel="U redu"
+      title={t('auth.resetTitle')}
+      message={t('auth.resetNeedEmail')}
+      confirmLabel={t('common.ok')}
       alertOnly
       onConfirm={() => setResetDialog('closed')}
       onCancel={() => setResetDialog('closed')}
@@ -156,10 +158,10 @@ export default function LoginScreen() {
 
     <ConfirmModal
       visible={resetDialog === 'confirm'}
-      title="Reset lozinke"
-      message={`Poslati link za reset lozinke na ${email.trim()}?`}
-      confirmLabel="Pošalji"
-      cancelLabel="Otkaži"
+      title={t('auth.resetTitle')}
+      message={t('auth.resetConfirm', { email: email.trim() })}
+      confirmLabel={t('common.send')}
+      cancelLabel={t('common.cancel')}
       loading={resetSending}
       onConfirm={sendResetEmail}
       onCancel={() => setResetDialog('closed')}
@@ -167,9 +169,9 @@ export default function LoginScreen() {
 
     <ConfirmModal
       visible={resetDialog === 'success'}
-      title="Poslato"
-      message="Proverite email za link za reset lozinke. Link vodi na ekran za unos nove lozinke."
-      confirmLabel="U redu"
+      title={t('auth.resetSentTitle')}
+      message={t('auth.resetSentMessage')}
+      confirmLabel={t('common.ok')}
       alertOnly
       onConfirm={() => setResetDialog('closed')}
       onCancel={() => setResetDialog('closed')}
@@ -177,9 +179,9 @@ export default function LoginScreen() {
 
     <ConfirmModal
       visible={resetDialog === 'error'}
-      title="Greška"
+      title={t('common.error')}
       message={resetMessage}
-      confirmLabel="U redu"
+      confirmLabel={t('common.ok')}
       alertOnly
       onConfirm={() => setResetDialog('closed')}
       onCancel={() => setResetDialog('closed')}

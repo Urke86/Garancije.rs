@@ -1,5 +1,6 @@
 import { View, TextInput, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Search, X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
@@ -11,9 +12,11 @@ interface Props {
   placeholder?: string;
 }
 
-export function SearchField({ value, onChangeText, placeholder = 'Pretraži kupovine...' }: Props) {
+export function SearchField({ value, onChangeText, placeholder }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const resolvedPlaceholder = placeholder ?? t('timeline.searchDefaultPlaceholder');
 
   return (
     <View style={styles.wrap}>
@@ -22,14 +25,14 @@ export function SearchField({ value, onChangeText, placeholder = 'Pretraži kupo
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
         clearButtonMode="never"
-        accessibilityLabel="Pretraga kupovina"
-        accessibilityHint="Unesite prodavnicu, proizvod, PIB ili broj računa"
+        accessibilityLabel={t('timeline.search_a11y')}
+        accessibilityHint={t('timeline.searchHint_a11y')}
       />
       {value.length > 0 ? (
         <TouchableOpacity
@@ -37,7 +40,7 @@ export function SearchField({ value, onChangeText, placeholder = 'Pretraži kupo
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           style={styles.clearBtn}
           accessibilityRole="button"
-          accessibilityLabel="Obriši pretragu"
+          accessibilityLabel={t('timeline.clearSearch_a11y')}
         >
           <X size={18} color={colors.textMuted} />
         </TouchableOpacity>

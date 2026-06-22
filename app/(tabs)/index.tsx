@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { getWarrantyStatus } from '@/lib/warranty';
@@ -46,6 +47,7 @@ interface RecentReceipt {
 }
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -142,17 +144,17 @@ export default function HomeScreen() {
       >
         <ScreenHeader
           greeting={greetingLine}
-          title="Vaš garancijski novčanik"
-          subtitle="Sve garancije na jednom mestu"
+          title={t('home.title')}
+          subtitle={t('home.subtitle')}
         />
 
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} style={styles.loader} />
         ) : loadError ? (
           <EmptyState
-            title="Greška pri učitavanju"
+            title={t('home.loadError')}
             description={loadError}
-            actionLabel="Pokušaj ponovo"
+            actionLabel={t('common.tryAgain')}
             onAction={() => {
               setLoading(true);
               loadData();
@@ -171,15 +173,15 @@ export default function HomeScreen() {
             {receiptCount === 0 ? (
               <EmptyState
                 showBrand
-                title="Nemate sačuvanih računa"
-                description="Dodajte prvi fiskalni račun — aplikacija će automatski prepoznati prodavnicu, stavke i datume garancije."
-                actionLabel="Dodaj prvi račun"
+                title={t('home.noReceiptsTitle')}
+                description={t('home.noReceiptsDesc')}
+                actionLabel={t('home.addFirstReceipt')}
                 onAction={() => router.push('/(tabs)/scan')}
               />
             ) : (
               <>
                 <PrimaryButton
-                  title="Dodaj novi račun"
+                  title={t('home.addNewReceipt')}
                   onPress={() => router.push('/(tabs)/scan')}
                   icon={<Camera size={22} color={colors.textInverse} />}
                   style={styles.scanCta}
@@ -187,7 +189,7 @@ export default function HomeScreen() {
 
                 {expiringItems.length > 0 ? (
                   <View style={styles.section}>
-                    <SectionHeader title="Uskoro ističe" />
+                    <SectionHeader title={t('home.expiringSoon')} />
                     {expiringItems.map((item) => (
                       <ExpiringItemCard
                         key={item.id}
@@ -204,8 +206,8 @@ export default function HomeScreen() {
                 {recentReceipts.length > 0 ? (
                   <View style={styles.section}>
                     <SectionHeader
-                      title="Nedavni računi"
-                      actionLabel="Vidi sve"
+                      title={t('home.recentReceipts')}
+                      actionLabel={t('home.seeAll')}
                       onAction={() => router.push('/(tabs)/timeline')}
                     />
                     {recentReceipts.map((r) => (

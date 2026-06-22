@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
 import { Card } from './Card';
@@ -21,30 +22,27 @@ export function WarrantySummaryCard({
   expiring,
   expired,
 }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
 
   const showReceiptsOnly = receiptCount > 0 && total === 0;
   const displayNumber = showReceiptsOnly ? receiptCount : total;
 
   const context = showReceiptsOnly
-    ? 'Račun je sačuvan. Proverite stavke i datume garancije na detaljima računa.'
+    ? t('home.summaryContextReceiptSaved')
     : receiptCount === 0
-      ? 'Dodajte prvi račun da započnete praćenje i čuvanje garancija.'
+      ? t('home.summaryContextAddFirst')
       : expiring > 0
-        ? `${expiring} garancij${expiring === 1 ? 'a' : 'e'} uskoro ističe — proverite na vreme.`
+        ? t('home.summaryContextExpiring', { count: expiring })
         : expired > 0 && active === 0
-          ? 'Sve aktivne garancije su istekle. Dodajte novi račun.'
-          : 'Sve garancije su pod kontrolom.';
+          ? t('home.summaryContextAllExpired')
+          : t('home.summaryContextAllGood');
 
   const bigLabel = showReceiptsOnly
-    ? receiptCount === 1
-      ? 'sačuvan račun'
-      : 'sačuvanih računa'
-    : total === 1
-      ? 'stavka pod garancijom'
-      : total > 1
-        ? 'stavki pod garancijom'
-        : 'nema sačuvanih garancija';
+    ? t('home.summarySavedReceipt', { count: receiptCount })
+    : total === 0
+      ? t('home.summaryNoWarranties')
+      : t('home.summaryWarrantyItem', { count: total });
 
   return (
     <Card style={styles.card}>

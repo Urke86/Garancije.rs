@@ -9,11 +9,13 @@ import {
   TextInput,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
 import {
   CATEGORIES,
+  getCategoryLabel,
   getDefaultWarrantyMonths,
   getWarrantyStatus,
   getWarrantyStatusLabel,
@@ -50,6 +52,7 @@ interface ItemDetail {
 }
 
 export default function ReceiptItemDetailScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -97,7 +100,7 @@ export default function ReceiptItemDetailScreen() {
   const handleSave = async () => {
     if (!user || !item) return;
     if (!name.trim()) {
-      setError('Unesite naziv proizvoda');
+      setError(t('receipt.enterProductName'));
       return;
     }
     setSaving(true);
@@ -135,24 +138,22 @@ export default function ReceiptItemDetailScreen() {
             onPress={() => router.back()}
             style={styles.iconBtn}
             accessibilityRole="button"
-            accessibilityLabel="Nazad"
+            accessibilityLabel={t('common.back')}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
         <View style={styles.centered}>
-          <Text style={styles.missingTitle}>Proizvod nije pronađen</Text>
-          <Text style={styles.missingBody}>
-            Stavka je možda obrisana ili nemate pristup ovom proizvodu.
-          </Text>
-          <PrimaryButton title="Nazad" onPress={() => router.back()} style={styles.missingBtn} />
+          <Text style={styles.missingTitle}>{t('receipt.itemNotFoundTitle')}</Text>
+          <Text style={styles.missingBody}>{t('receipt.itemNotFoundBody')}</Text>
+          <PrimaryButton title={t('common.back')} onPress={() => router.back()} style={styles.missingBtn} />
         </View>
       </AppScreen>
     );
   }
 
   const receipt = item.receipts;
-  const categoryLabel = CATEGORIES.find((c) => c.id === item.category)?.label ?? item.category;
+  const categoryLabel = getCategoryLabel(item.category);
 
   return (
     <AppScreen>
@@ -167,12 +168,12 @@ export default function ReceiptItemDetailScreen() {
             onPress={() => router.back()}
             style={styles.iconBtn}
             accessibilityRole="button"
-            accessibilityLabel="Nazad"
+            accessibilityLabel={t('common.back')}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.topBarCenter}>
-            <Text style={styles.screenTitle}>Detalji proizvoda</Text>
+            <Text style={styles.screenTitle}>{t('receipt.itemDetailTitle')}</Text>
             <Text style={styles.screenSubtitle} numberOfLines={1}>
               {item.name}
             </Text>
@@ -200,7 +201,7 @@ export default function ReceiptItemDetailScreen() {
               style={styles.nameInput}
               value={name}
               onChangeText={setName}
-              placeholder="Naziv proizvoda"
+              placeholder={t('receipt.itemNamePlaceholder')}
               placeholderTextColor={colors.textMuted}
             />
           ) : (
@@ -217,8 +218,8 @@ export default function ReceiptItemDetailScreen() {
           <>
             {error ? <Text style={styles.error}>{error}</Text> : null}
             <Card style={styles.editCard}>
-              <Text style={styles.editSectionTitle}>Uredi proizvod</Text>
-              <Text style={styles.fieldLabel}>Kategorija</Text>
+              <Text style={styles.editSectionTitle}>{t('receipt.editProductSection')}</Text>
+              <Text style={styles.fieldLabel}>{t('receipt.fieldCategory')}</Text>
               <View style={styles.chips}>
                 {CATEGORIES.map((cat) => (
                   <TouchableOpacity
@@ -237,7 +238,7 @@ export default function ReceiptItemDetailScreen() {
               </View>
               <View style={styles.row}>
                 <View style={styles.half}>
-                  <Text style={styles.fieldLabel}>Cena (RSD)</Text>
+                  <Text style={styles.fieldLabel}>{t('receipt.fieldPriceRsd')}</Text>
                   <TextInput
                     style={styles.input}
                     value={price}
@@ -248,7 +249,7 @@ export default function ReceiptItemDetailScreen() {
                   />
                 </View>
                 <View style={styles.half}>
-                  <Text style={styles.fieldLabel}>Garancija (meseci)</Text>
+                  <Text style={styles.fieldLabel}>{t('receipt.fieldWarrantyMonths')}</Text>
                   <TextInput
                     style={styles.input}
                     value={warrantyMonths}
@@ -261,7 +262,7 @@ export default function ReceiptItemDetailScreen() {
               </View>
             </Card>
             <PrimaryButton
-              title={saving ? 'Čuvam...' : 'Sačuvaj proizvod'}
+              title={saving ? t('common.saving') : t('receipt.saveProduct')}
               onPress={handleSave}
               loading={saving}
               style={styles.saveBtn}
@@ -270,7 +271,7 @@ export default function ReceiptItemDetailScreen() {
               style={styles.receiptEditLink}
               onPress={() => router.push(`/receipt/${receipt.id}?edit=1`)}
             >
-              <Text style={styles.receiptEditLinkText}>Uredi ceo račun i ostale proizvode</Text>
+              <Text style={styles.receiptEditLinkText}>{t('receipt.editFullReceiptLink')}</Text>
             </TouchableOpacity>
           </>
         ) : (
@@ -284,45 +285,49 @@ export default function ReceiptItemDetailScreen() {
               </Card>
             ) : (
               <Card style={styles.warningCard}>
-                <Text style={styles.warningText}>Garancija nije uneta za ovu stavku.</Text>
+                <Text style={styles.warningText}>{t('receipt.noWarrantyWarning')}</Text>
               </Card>
             )}
 
             <Card style={styles.detailsCard}>
-              <Text style={styles.detailsTitle}>Svi podaci</Text>
-              <DetailRow label="Prodavnica" value={receipt.store_name || '—'} />
-              <DetailRow label="Kategorija proizvoda" value={categoryLabel} />
+              <Text style={styles.detailsTitle}>{t('receipt.allDataTitle')}</Text>
+              <DetailRow label={t('receipt.fieldStore')} value={receipt.store_name || '—'} />
+              <DetailRow label={t('receipt.fieldProductCategory')} value={categoryLabel} />
               <DetailRow
-                label="Datum kupovine proizvoda"
+                label={t('receipt.fieldPurchaseDate')}
                 value={formatSerbianDate(receipt.purchase_date)}
               />
               {item.warranty_expires_at ? (
                 <>
                   <DetailRow
-                    label="Datum isteka garancije"
+                    label={t('receipt.fieldWarrantyExpiry')}
                     value={formatSerbianDate(item.warranty_expires_at)}
                     emphasize
                   />
                   <DetailRow
-                    label="Status garancije"
+                    label={t('receipt.fieldWarrantyStatus')}
                     value={getWarrantyStatusLabel(getWarrantyStatus(item.warranty_expires_at))}
                   />
-                  <DetailRow label="Trajanje garancije" value={`${item.warranty_months} meseci`} muted />
+                  <DetailRow
+                    label={t('receipt.fieldWarrantyDuration')}
+                    value={t('receipt.fieldWarrantyDurationValue', { count: item.warranty_months })}
+                    muted
+                  />
                 </>
               ) : null}
               <DetailRow
-                label="Cena proizvoda"
+                label={t('receipt.fieldProductPrice')}
                 value={`${Number(item.price).toLocaleString('sr-RS')} RSD`}
                 muted
               />
               <DetailRow
-                label="Ukupan iznos računa"
+                label={t('receipt.fieldTotalAmount')}
                 value={`${Number(receipt.total_amount).toLocaleString('sr-RS')} RSD`}
                 muted
               />
-              {receipt.pib ? <DetailRow label="PIB prodavnice" value={receipt.pib} muted /> : null}
+              {receipt.pib ? <DetailRow label={t('receipt.fieldPib')} value={receipt.pib} muted /> : null}
               {receipt.receipt_number ? (
-                <DetailRow label="Broj fiskalnog računa" value={receipt.receipt_number} muted />
+                <DetailRow label={t('receipt.fieldReceiptNumber')} value={receipt.receipt_number} muted />
               ) : null}
             </Card>
 
@@ -330,7 +335,7 @@ export default function ReceiptItemDetailScreen() {
               style={styles.receiptLink}
               onPress={() => router.push(`/receipt/${receipt.id}`)}
             >
-              <Text style={styles.receiptLinkText}>Otvori ceo račun</Text>
+              <Text style={styles.receiptLinkText}>{t('receipt.openFullReceipt')}</Text>
             </TouchableOpacity>
           </>
         )}

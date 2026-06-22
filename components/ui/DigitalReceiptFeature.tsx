@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Image, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ShieldCheck } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { fadedReceiptIllustration } from '@/lib/branding';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -10,11 +11,11 @@ import { useColors } from '@/contexts/ThemeContext';
 const WIDE_LAYOUT = 520;
 
 interface Props {
-  /** Uklopljen u Card — bez duplog okvira i senke. */
   embedded?: boolean;
 }
 
 export function DigitalReceiptFeature({ embedded = false }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -43,7 +44,7 @@ export function DigitalReceiptFeature({ embedded = false }: Props) {
               source={fadedReceiptIllustration}
               style={styles.image}
               resizeMode="contain"
-              accessibilityLabel="Ilustracija: fiskalni račun je izbledao"
+              accessibilityLabel={t('home.digitalCopyImage_a11y')}
             />
           </View>
         </View>
@@ -51,16 +52,13 @@ export function DigitalReceiptFeature({ embedded = false }: Props) {
         <View style={[styles.copy, isWide && styles.copyWide]}>
           <View style={styles.badge}>
             <ShieldCheck size={14} color={colors.primary} strokeWidth={2.5} />
-            <Text style={styles.badgeText}>Trajna digitalna kopija</Text>
+            <Text style={styles.badgeText}>{t('home.digitalCopyBadge')}</Text>
           </View>
-          <Text style={styles.title}>Zašto digitalna kopija?</Text>
-          <Text style={styles.body}>
-            Termalni papir bledi, a dokaz o kupovini nestaje u fioci. Kod nas sken ostaje čitljiv
-            i spreman za garanciju — godinama.
-          </Text>
+          <Text style={styles.title}>{t('home.digitalCopyTitle')}</Text>
+          <Text style={styles.body}>{t('home.digitalCopyBody')}</Text>
           <View style={styles.highlights}>
-            <Highlight label="Izgled računa sačuvan" />
-            <Highlight label="Uvek pri ruci" />
+            <Highlight label={t('home.digitalCopyHighlight1')} />
+            <Highlight label={t('home.digitalCopyHighlight2')} />
           </View>
         </View>
       </View>

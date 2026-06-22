@@ -2,6 +2,7 @@ import { Platform, Alert, Linking } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { t } from '@/lib/i18n';
 
 function sanitizePdfFilename(title: string): string {
   const slug = title
@@ -143,7 +144,7 @@ async function offerPdfShare(pdfUri: string): Promise<void> {
   if (!(await Sharing.isAvailableAsync())) return;
   await Sharing.shareAsync(pdfUri, {
     mimeType: 'application/pdf',
-    dialogTitle: 'Podeli PDF računa',
+    dialogTitle: t('receipt.shareDialogPdf'),
     UTI: 'com.adobe.pdf',
   });
 }
@@ -166,37 +167,35 @@ export async function downloadReceiptPhotoAsPdf(imageUri: string, title: string)
     if (Platform.OS === 'android') {
       const savedToDownloads = await savePdfToAndroidDownloads(savedUri, filename);
       if (savedToDownloads) {
-        Alert.alert('Preuzeto', 'PDF je sačuvan u folder Preuzimanja.');
+        Alert.alert(t('receipt.pdfDownloaded'), t('receipt.pdfSavedDownloads'));
         return;
       }
 
       Alert.alert(
-        'Preuzimanje nije završeno',
-        'Niste izabrali folder za čuvanje. PDF je sačuvan u aplikaciji — možete ga podeliti.',
+        t('receipt.pdfDownloadIncomplete'),
+        t('receipt.pdfDownloadIncompleteBody'),
         [
-          { text: 'U redu', style: 'cancel' },
-          { text: 'Podeli PDF', onPress: () => offerPdfShare(savedUri) },
+          { text: t('common.ok'), style: 'cancel' },
+          { text: t('receipt.sharePdf'), onPress: () => offerPdfShare(savedUri) },
         ],
       );
       return;
     }
 
-    Alert.alert('Preuzeto', 'PDF računa je sačuvan.', [
-      { text: 'U redu', style: 'cancel' },
-      { text: 'Podeli PDF', onPress: () => offerPdfShare(savedUri) },
+    Alert.alert(t('receipt.pdfDownloaded'), t('receipt.pdfSaved'), [
+      { text: t('common.ok'), style: 'cancel' },
+      { text: t('receipt.sharePdf'), onPress: () => offerPdfShare(savedUri) },
     ]);
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Nepoznata greška';
-    Alert.alert('Greška', `PDF nije kreiran: ${message}`);
+    const message = e instanceof Error ? e.message : t('common.unknownError');
+    Alert.alert(t('common.error'), t('receipt.pdfCreateFailed', { message }));
   }
 }
 
 export async function shareReceiptPhoto(imageUri: string, productName: string): Promise<void> {
   try {
-    const subject = encodeURIComponent(`Fiskalni račun — ${productName}`);
-    const body = encodeURIComponent(
-      `U prilogu je fotografija fiskalnog računa za proizvod: ${productName}.\n\nPoslato iz aplikacije Garancije.rs`,
-    );
+    const subject = encodeURIComponent(t('receipt.shareEmailSubject', { name: productName }));
+    const body = encodeURIComponent(t('receipt.shareEmailBody', { name: productName }));
 
     if (Platform.OS === 'web') {
       if (navigator.share) {
@@ -204,7 +203,7 @@ export async function shareReceiptPhoto(imageUri: string, productName: string): 
         const blob = await res.blob();
         const file = new File([blob], 'racun.jpg', { type: 'image/jpeg' });
         await navigator.share({
-          title: `Račun — ${productName}`,
+          title: t('receipt.pdfTitlePrefix', { name: productName }),
           files: [file],
         });
         return;
@@ -217,7 +216,7 @@ export async function shareReceiptPhoto(imageUri: string, productName: string): 
       const localUri = await resolveLocalImageUri(imageUri);
       await Sharing.shareAsync(localUri, {
         mimeType: 'image/jpeg',
-        dialogTitle: 'Pošalji fotografiju računa',
+        dialogTitle: t('receipt.shareDialogPhoto'),
         UTI: 'public.jpeg',
       });
       return;
@@ -225,7 +224,7 @@ export async function shareReceiptPhoto(imageUri: string, productName: string): 
 
     await Linking.openURL(`mailto:?subject=${subject}&body=${body}`);
   } catch (e) {
-    const message = e instanceof Error ? e.message : 'Nepoznata greška';
-    Alert.alert('Greška', `Slanje nije uspelo: ${message}`);
+    const message = e instanceof Error ? e.message : t('common.unknownError');
+    Alert.alert(t('common.error'), t('receipt.shareFailed', { message }));
   }
 }

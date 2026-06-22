@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 import { prepareImageForOcr } from '@/lib/ocr-image-preprocess';
 
 function decodeBase64(base64: string): Uint8Array {
@@ -17,7 +18,7 @@ export async function uploadReceiptImageFromUri(
   localUri: string,
 ): Promise<{ path: string | null; error: string | null }> {
   if (!localUri.trim()) {
-    return { path: null, error: 'Nedostaje slika računa' };
+    return { path: null, error: t('errors.missingReceiptImage') };
   }
 
   try {
@@ -38,13 +39,13 @@ export async function uploadReceiptImageFromUri(
       .upload(fileName, bytes, { contentType: 'image/jpeg' });
 
     if (uploadError) {
-      return { path: null, error: 'Greška pri otpremanju slike: ' + uploadError.message };
+      return { path: null, error: t('errors.uploadImageFailedWithDetail', { detail: uploadError.message }) };
     }
 
     return { path: fileName, error: null };
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Nepoznata greška';
-    return { path: null, error: 'Greška pri otpremanju slike: ' + message };
+    const message = err instanceof Error ? err.message : t('common.unknownError');
+    return { path: null, error: t('errors.uploadImageFailedWithDetail', { detail: message }) };
   }
 }
 

@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { handleWebOAuthCallback } from '@/lib/auth/google';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
 export default function AuthCallbackScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
-  const [message, setMessage] = useState('Završavamo prijavu...');
+  const [message, setMessage] = useState(() => t('auth.callbackCompleting'));
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +40,7 @@ export default function AuthCallbackScreen() {
       if (session) {
         router.replace('/(tabs)');
       } else {
-        setMessage('Prijava nije uspela. Pokušajte ponovo.');
+        setMessage(t('auth.callbackFailed'));
         setTimeout(() => router.replace('/(auth)'), 2500);
       }
     };
@@ -56,7 +58,7 @@ export default function AuthCallbackScreen() {
       cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [t]);
 
   return (
     <View style={styles.container}>

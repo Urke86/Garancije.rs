@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Bell } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { space } from '@/lib/spacing';
 import { fontFamily } from '@/lib/typography';
@@ -8,7 +9,7 @@ import { Card } from '@/components/ui/Card';
 import {
   getNotificationPreferences,
   upsertNotificationPreferences,
-  OFFSET_OPTIONS,
+  getOffsetOptions,
 } from '@/lib/notification-preferences';
 import { registerForPushNotifications } from '@/lib/notifications';
 import { InlineErrorBanner } from '@/components/ui/InlineErrorBanner';
@@ -17,8 +18,10 @@ import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
 
 export function NotificationSettingsCard() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const offsetOptions = getOffsetOptions();
 
   const { user } = useAuth();
   const [enabled, setEnabled] = useState(true);
@@ -49,7 +52,7 @@ export function NotificationSettingsCard() {
       offsets_days: nextOffsets,
     });
     if (error) {
-      setSaveError('Nije moguće sačuvati podešavanja. Pokušajte ponovo.');
+      setSaveError(t('notifications.settingsSaveFailed'));
       setSaving(false);
       return;
     }
@@ -88,11 +91,8 @@ export function NotificationSettingsCard() {
           <Bell size={18} color={colors.primary} />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.title}>Podsetnici garancije</Text>
-          <Text style={styles.subtitle}>
-            Push obaveštenja pre isteka garancije. Podsetnici ostaju u aplikaciji; push stiže
-            samo ako su obaveštenja uključena.
-          </Text>
+          <Text style={styles.title}>{t('notifications.settingsTitle')}</Text>
+          <Text style={styles.subtitle}>{t('notifications.settingsSubtitle')}</Text>
         </View>
         <Switch
           value={enabled}
@@ -107,9 +107,9 @@ export function NotificationSettingsCard() {
 
       {enabled ? (
         <View style={styles.offsets}>
-          <Text style={styles.offsetsLabel}>Kada da vas podsetimo?</Text>
+          <Text style={styles.offsetsLabel}>{t('notifications.settingsWhenLabel')}</Text>
           <View style={styles.chips}>
-            {OFFSET_OPTIONS.map((opt) => {
+            {offsetOptions.map((opt) => {
               const active = offsets.includes(opt.days);
               return (
                 <TouchableOpacity

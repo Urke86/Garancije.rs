@@ -1,11 +1,17 @@
+import { t } from '@/lib/i18n';
+
 export type ReminderGroupKey = 'today' | 'week' | 'later' | 'past';
 
-export const REMINDER_GROUP_LABELS: Record<ReminderGroupKey, string> = {
-  today: 'Danas',
-  week: 'Ove nedelje',
-  later: 'Kasnije',
-  past: 'Prošlo',
+const GROUP_LABEL_KEYS: Record<ReminderGroupKey, string> = {
+  today: 'reminders.sectionToday',
+  week: 'reminders.sectionThisWeek',
+  later: 'reminders.sectionLater',
+  past: 'reminders.sectionPast',
 };
+
+export function getReminderGroupLabel(key: ReminderGroupKey): string {
+  return t(GROUP_LABEL_KEYS[key]);
+}
 
 export function getReminderGroup(remindAt: string): ReminderGroupKey {
   const now = new Date();
@@ -43,7 +49,7 @@ export function groupRemindersByDate<T extends { remind_at: string }>(
     .filter((key) => (buckets.get(key)?.length ?? 0) > 0)
     .map((key) => ({
       key,
-      label: REMINDER_GROUP_LABELS[key],
+      label: getReminderGroupLabel(key),
       items: buckets.get(key)!,
     }));
 }

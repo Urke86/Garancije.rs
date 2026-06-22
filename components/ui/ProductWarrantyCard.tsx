@@ -1,13 +1,15 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
-import { CATEGORIES } from '@/lib/warranty';
+import { getCategories } from '@/lib/warranty';
 import { Card } from './Card';
 import { WarrantyStatusBadge } from './WarrantyStatusBadge';
 import { WarrantyDetailBlock } from './WarrantyDetailBlock';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
+import { useDateLocale } from '@/contexts/LocaleContext';
 
 interface Props {
   name: string;
@@ -28,10 +30,12 @@ export function ProductWarrantyCard({
   storeName,
   onPress,
 }: Props) {
+  const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
-  const categoryLabel = CATEGORIES.find((c) => c.id === category)?.label;
+  const categoryLabel = getCategories().find((c) => c.id === category)?.label;
 
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.88}>
@@ -43,7 +47,7 @@ export function ProductWarrantyCard({
             </Text>
             {storeName ? (
               <Text style={styles.store} numberOfLines={1}>
-                Prodavnica: {storeName}
+                {t('home.expiringStorePrefix')} {storeName}
               </Text>
             ) : null}
             {categoryLabel ? <Text style={styles.category}>{categoryLabel}</Text> : null}
@@ -63,15 +67,17 @@ export function ProductWarrantyCard({
           />
         ) : (
           <View style={styles.missingWarranty}>
-            <Text style={styles.missingTitle}>Garancija nije uneta</Text>
-            <Text style={styles.missingBody}>
-              Dodirnite da dopunite datum isteka garancije za ovaj proizvod.
-            </Text>
+            <Text style={styles.missingTitle}>{t('receipt.missingWarrantyTitle')}</Text>
+            <Text style={styles.missingBody}>{t('receipt.missingWarrantyBody')}</Text>
           </View>
         )}
 
         {price != null && price > 0 ? (
-          <Text style={styles.price}>Cena stavke: {Number(price).toLocaleString('sr-RS')} RSD</Text>
+          <Text style={styles.price}>
+            {t('receipt.itemPrice', {
+              price: Number(price).toLocaleString(dateLocale),
+            })}
+          </Text>
         ) : null}
       </Card>
     </TouchableOpacity>

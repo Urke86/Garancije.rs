@@ -1,8 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
+
 interface Props {
   status: 'active' | 'expiring' | 'expired';
   count?: number;
@@ -10,12 +12,13 @@ interface Props {
 }
 
 export function StatPill({ status, count, compact }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const config = {
-    active: { label: 'Aktivne', bg: colors.successLight, fg: colors.success },
-    expiring: { label: 'Ističu', bg: colors.warningLight, fg: colors.warning },
-    expired: { label: 'Istekle', bg: colors.errorLight, fg: colors.error },
+    active: { label: t('warranty.statActive'), bg: colors.successLight, fg: colors.success },
+    expiring: { label: t('warranty.statExpiring'), bg: colors.warningLight, fg: colors.warning },
+    expired: { label: t('warranty.statExpired'), bg: colors.errorLight, fg: colors.error },
   } as const;
 
   const c = config[status];

@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import {
   formatSerbianDate,
@@ -32,6 +33,7 @@ export function WarrantyDetailBlock({
   warrantyExpiresAt,
   showCountdownParts = true,
 }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const info = getWarrantyRemainingInfo(warrantyExpiresAt);
@@ -45,11 +47,11 @@ export function WarrantyDetailBlock({
   return (
     <View style={styles.wrap}>
       <LabeledRow
-        label="Datum kupovine proizvoda"
+        label={t('receipt.fieldPurchaseDate')}
         value={formatSerbianDate(purchaseDate)}
       />
       <LabeledRow
-        label="Datum isteka garancije"
+        label={t('receipt.fieldWarrantyExpiry')}
         value={info.expiryLabel}
         emphasize
       />

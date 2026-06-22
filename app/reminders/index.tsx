@@ -10,6 +10,7 @@ import {
   Pressable,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
@@ -29,6 +30,7 @@ import type { AppColors } from '@/lib/theme';
 import { InlineErrorBanner } from '@/components/ui/InlineErrorBanner';
 import { getSupabaseErrorMessage } from '@/lib/supabase-errors';
 import { useColors } from '@/contexts/ThemeContext';
+import { formatLocalizedDate } from '@/lib/warranty';
 
 interface Reminder {
   id: string;
@@ -43,6 +45,7 @@ interface Reminder {
 }
 
 export default function RemindersScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -144,12 +147,17 @@ export default function RemindersScreen() {
     const result = groupedPending.map((g) => ({
       title: g.label,
       data: g.items,
+      showActions: true,
     }));
     if (dismissed.length > 0) {
-      result.push({ title: 'Završeni', data: dismissed });
+      result.push({
+        title: t('reminders.sectionCompleted'),
+        data: dismissed,
+        showActions: false,
+      });
     }
     return result;
-  }, [groupedPending, dismissed]);
+  }, [groupedPending, dismissed, t]);
 
   const renderReminder = (item: Reminder, showActions: boolean) => {
     const isPast = new Date(item.remind_at) <= new Date();
@@ -162,11 +170,12 @@ export default function RemindersScreen() {
         onPress={() => router.push(`/receipt/item/${item.receipt_item_id}`)}
         onLongPress={showActions ? () => showSnoozeOptions(item.id) : undefined}
         accessibilityRole="button"
-        accessibilityLabel={`${item.message}, ${item.receipt_items?.name}`}
+        accessibilityLabel={t('reminders.item_a11y', {
+          message: item.message,
+          productName: item.receipt_items?.name ?? '',
+        })}
         accessibilityHint={
-          showActions
-            ? 'Pritisnite za detalje stavke. Dugi pritisak za odložiti podsetnik.'
-            : undefined
+          showActions ? t('reminders.itemHint_a11y') : undefined
         }
       >
         <Card
@@ -193,11 +202,7 @@ export default function RemindersScreen() {
             <View style={styles.dateRow}>
               <Clock size={12} color={colors.textMuted} />
               <Text style={styles.date}>
-                {new Date(item.remind_at).toLocaleDateString('sr-RS', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
+                {formatLocalizedDate(item.remind_at)}
               </Text>
             </View>
           </View>
@@ -211,7 +216,7 @@ export default function RemindersScreen() {
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityRole="button"
-                accessibilityLabel="Odloži podsetnik"
+                accessibilityLabel={t('reminders.snooze_a11y')}
               >
                 <Clock size={18} color={colors.primary} />
               </TouchableOpacity>
@@ -223,7 +228,7 @@ export default function RemindersScreen() {
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityRole="button"
-                accessibilityLabel="Označi podsetnik kao završen"
+                accessibilityLabel={t('reminders.dismiss_a11y')}
               >
                 <Check size={18} color={colors.primary} />
               </TouchableOpacity>
@@ -240,7 +245,7 @@ export default function RemindersScreen() {
         sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={({ item, section }) =>
-          renderReminder(item, section.title !== 'Završeni')
+          renderReminder(item, section.showActions)
         }
         renderSectionHeader={({ section: { title } }) => (
           <Text style={styles.sectionTitle}>{title}</Text>
@@ -248,15 +253,13 @@ export default function RemindersScreen() {
         ListHeaderComponent={
           <View style={styles.headerPad}>
             <StackScreenHeader
-              title="Podsetnici"
-              subtitle={`${pending.length} aktivnih podsetnika`}
+              title={t('reminders.title')}
+              subtitle={t('reminders.subtitle', { count: pending.length })}
             />
             <NotificationPermissionBanner onPermissionGranted={() => register()} />
             <InlineErrorBanner message={actionError} />
             {pending.length === 0 && dismissed.length === 0 ? null : (
-              <Text style={styles.hint}>
-                Koristite dugme sa sata pored podsetnika da ga odložite za 1 ili 7 dana
-              </Text>
+              <Text style={styles.hint}>{t('reminders.hint')}</Text>
             )}
           </View>
         }
@@ -271,8 +274,8 @@ export default function RemindersScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            title="Nema podsetnika"
-            description="Podsetnici se kreiraju automatski kada dodate proizvode sa garancijom."
+            title={t('reminders.emptyTitle')}
+            description={t('reminders.emptyDesc')}
           />
         }
       />
@@ -284,33 +287,33 @@ export default function RemindersScreen() {
       >
         <View style={styles.snoozeBackdrop}>
           <View style={styles.snoozeCard}>
-            <Text style={styles.snoozeTitle}>Odloži podsetnik</Text>
-            <Text style={styles.snoozeMessage}>Za koliko da vas ponovo podsetimo?</Text>
+            <Text style={styles.snoozeTitle}>{t('reminders.snoozeTitle')}</Text>
+            <Text style={styles.snoozeMessage}>{t('reminders.snoozeQuestion')}</Text>
             <TouchableOpacity
               style={styles.snoozeOption}
               onPress={() => snoozeTarget && snoozeReminder(snoozeTarget, 1)}
               disabled={snoozing}
               accessibilityRole="button"
-              accessibilityLabel="Odloži za 1 dan"
+              accessibilityLabel={t('reminders.snooze1Day_a11y')}
             >
-              <Text style={styles.snoozeOptionText}>1 dan</Text>
+              <Text style={styles.snoozeOptionText}>{t('reminders.snooze1Day')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.snoozeOption}
               onPress={() => snoozeTarget && snoozeReminder(snoozeTarget, 7)}
               disabled={snoozing}
               accessibilityRole="button"
-              accessibilityLabel="Odloži za 7 dana"
+              accessibilityLabel={t('reminders.snooze7Days_a11y')}
             >
-              <Text style={styles.snoozeOptionText}>7 dana</Text>
+              <Text style={styles.snoozeOptionText}>{t('reminders.snooze7Days')}</Text>
             </TouchableOpacity>
             <Pressable
               style={styles.snoozeCancel}
               onPress={() => setSnoozeTarget(null)}
               accessibilityRole="button"
-              accessibilityLabel="Otkaži"
+              accessibilityLabel={t('common.cancel')}
             >
-              <Text style={styles.snoozeCancelText}>Otkaži</Text>
+              <Text style={styles.snoozeCancelText}>{t('common.cancel')}</Text>
             </Pressable>
           </View>
         </View>

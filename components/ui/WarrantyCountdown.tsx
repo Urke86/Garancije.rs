@@ -1,4 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import {
   getWarrantyRemainingInfo,
@@ -26,20 +27,24 @@ function PartBlock({ value, unit }: { value: number; unit: string }) {
 
 function PartsRow({ parts, compact }: { parts: WarrantyRemainingParts; compact?: boolean }) {
   const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
+
+  const dayUnit = (count: number) =>
+    t('warranty.countdownDay', { count });
 
   const units =
     parts.years > 0
       ? [
-          { value: parts.years, unit: parts.years === 1 ? 'god' : 'god' },
-          { value: parts.months, unit: 'mes' },
-          { value: parts.days, unit: 'dan' },
+          { value: parts.years, unit: t('warranty.countdownYear') },
+          { value: parts.months, unit: t('warranty.countdownMonth') },
+          { value: parts.days, unit: dayUnit(parts.days) },
         ]
       : parts.months > 0
         ? [
-            { value: parts.months, unit: parts.months === 1 ? 'mes' : 'mes' },
-            { value: parts.days, unit: 'dan' },
+            { value: parts.months, unit: t('warranty.countdownMonth') },
+            { value: parts.days, unit: dayUnit(parts.days) },
           ]
-        : [{ value: parts.days, unit: parts.days === 1 ? 'dan' : 'dana' }];
+        : [{ value: parts.days, unit: dayUnit(parts.days) }];
 
   return (
     <View style={[styles.partsRow, compact && styles.partsRowCompact]}>
@@ -51,6 +56,7 @@ function PartsRow({ parts, compact }: { parts: WarrantyRemainingParts; compact?:
 }
 
 export function WarrantyCountdown({ warrantyExpiresAt, compact }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
   const info = getWarrantyRemainingInfo(warrantyExpiresAt);
@@ -67,7 +73,7 @@ export function WarrantyCountdown({ warrantyExpiresAt, compact }: Props) {
         {info.remainingLabel}
       </Text>
       <PartsRow parts={info.parts} compact={compact} />
-      <Text style={styles.expiry}>Ističe: {info.expiryLabel}</Text>
+      <Text style={styles.expiry}>{t('warranty.expiresPrefix')} {info.expiryLabel}</Text>
     </View>
   );
 }

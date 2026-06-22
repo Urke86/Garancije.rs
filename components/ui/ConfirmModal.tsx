@@ -8,6 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { fontFamily } from '@/lib/typography';
+import { useTranslation } from 'react-i18next';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
@@ -30,16 +31,19 @@ export function ConfirmModal({
   visible,
   title,
   message,
-  confirmLabel = 'Potvrdi',
-  cancelLabel = 'Otkaži',
+  confirmLabel,
+  cancelLabel,
   destructive = false,
   loading = false,
   alertOnly = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
+  const resolvedConfirmLabel = confirmLabel ?? t('common.confirm');
+  const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
 
   if (!visible) return null;
 
@@ -57,7 +61,7 @@ export function ConfirmModal({
             style={styles.backdrop}
             onPress={onCancel}
             accessibilityRole="button"
-            accessibilityLabel="Zatvori dijalog"
+            accessibilityLabel={t('common.closeDialog_a11y')}
           />
         ) : (
           <View style={styles.backdrop} />
@@ -74,9 +78,9 @@ export function ConfirmModal({
                 onPress={onCancel}
                 disabled={loading}
                 accessibilityRole="button"
-                accessibilityLabel={cancelLabel}
+                accessibilityLabel={resolvedCancelLabel}
               >
-                <Text style={styles.cancelText}>{cancelLabel}</Text>
+                <Text style={styles.cancelText}>{resolvedCancelLabel}</Text>
               </Pressable>
             ) : null}
 
@@ -90,13 +94,13 @@ export function ConfirmModal({
               onPress={onConfirm}
               disabled={loading}
               accessibilityRole="button"
-              accessibilityLabel={confirmLabel}
+              accessibilityLabel={resolvedConfirmLabel}
             >
               {loading ? (
                 <ActivityIndicator size="small" color={destructive ? colors.error : colors.textInverse} />
               ) : (
                 <Text style={[styles.confirmText, destructive && styles.destructiveText]}>
-                  {confirmLabel}
+                  {resolvedConfirmLabel}
                 </Text>
               )}
             </Pressable>

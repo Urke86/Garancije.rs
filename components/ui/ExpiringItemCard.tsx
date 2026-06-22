@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { TriangleAlert as AlertTriangle, ChevronRight } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
 import { Card } from './Card';
@@ -24,6 +25,7 @@ export function ExpiringItemCard({
   warrantyExpiresAt,
   onPress,
 }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -40,7 +42,7 @@ export function ExpiringItemCard({
             </Text>
             {storeName ? (
               <Text style={styles.store} numberOfLines={1}>
-                Prodavnica: {storeName}
+                {t('home.expiringStorePrefix')} {storeName}
               </Text>
             ) : null}
           </View>
@@ -52,7 +54,7 @@ export function ExpiringItemCard({
           showCountdownParts={false}
         />
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Prikaži sve detalje</Text>
+          <Text style={styles.footerText}>{t('home.expiringShowDetails')}</Text>
           <ChevronRight size={16} color={colors.accent} />
         </View>
       </Card>

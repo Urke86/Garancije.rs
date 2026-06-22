@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
@@ -39,14 +40,8 @@ interface ReceiptWithItems {
 
 type FilterKey = 'all' | 'active' | 'expiring' | 'expired';
 
-const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: 'all', label: 'Sve' },
-  { key: 'active', label: 'Aktivne' },
-  { key: 'expiring', label: 'Ističu' },
-  { key: 'expired', label: 'Istekle' },
-];
-
 export default function TimelineScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -58,6 +53,16 @@ export default function TimelineScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const filters = useMemo(
+    (): { key: FilterKey; label: string }[] => [
+      { key: 'all', label: t('timeline.filterAll') },
+      { key: 'active', label: t('timeline.filterActive') },
+      { key: 'expiring', label: t('timeline.filterExpiring') },
+      { key: 'expired', label: t('timeline.filterExpired') },
+    ],
+    [t],
+  );
 
   const loadReceipts = useCallback(async () => {
     if (!user) return;
@@ -123,19 +128,18 @@ export default function TimelineScreen() {
     if (isSearching) {
       const n = displayed.length;
       return n === 0
-        ? 'Nema rezultata pretrage'
-        : `${n} ${n === 1 ? 'rezultat' : n < 5 ? 'rezultata' : 'rezultata'} pretrage`;
+        ? t('timeline.subtitleNoResults')
+        : t('timeline.subtitleResult', { count: n });
     }
-    const total = receipts.length;
-    return `${total} ${total === 1 ? 'račun' : total < 5 ? 'računa' : 'računa'} ukupno`;
-  }, [isSearching, displayed.length, receipts.length]);
+    return t('timeline.subtitleReceipt', { count: receipts.length });
+  }, [isSearching, displayed.length, receipts.length, t]);
 
   const emptyState = useMemo(() => {
     if (loadError && !isSearching && filter === 'all') {
       return {
-        title: 'Greška pri učitavanju',
+        title: t('timeline.emptyLoadErrorTitle'),
         description: loadError,
-        actionLabel: 'Pokušaj ponovo',
+        actionLabel: t('common.tryAgain'),
         onAction: () => {
           setLoading(true);
           loadReceipts();
@@ -144,42 +148,42 @@ export default function TimelineScreen() {
     }
     if (isSearching) {
       return {
-        title: 'Nema rezultata',
-        description: `Nijedna kupovina ne odgovara „${searchQuery.trim()}”. Probajte drugačiji pojam — prodavnicu, proizvod, PIB ili broj računa.`,
+        title: t('timeline.emptyNoResultsTitle'),
+        description: t('timeline.emptyNoResultsDesc', { query: searchQuery.trim() }),
         actionLabel: undefined as string | undefined,
         onAction: undefined,
       };
     }
     if (filter !== 'all') {
       return {
-        title: 'Nema računa u ovoj kategoriji',
-        description: 'Promenite filter ili dodajte novi račun.',
+        title: t('timeline.emptyFilterTitle'),
+        description: t('timeline.emptyFilterDesc'),
         actionLabel: undefined,
         onAction: undefined,
       };
     }
     return {
-      title: 'Nemate sačuvanih kupovina',
-      description: 'Dodajte fiskalni račun da biste ga sačuvali i pratili garancije.',
-      actionLabel: 'Dodaj račun',
+      title: t('timeline.emptyNoPurchasesTitle'),
+      description: t('timeline.emptyNoPurchasesDesc'),
+      actionLabel: t('timeline.emptyAddReceipt'),
       onAction: () => router.push('/(tabs)/scan'),
     };
-  }, [isSearching, searchQuery, filter, loadError, loadReceipts]);
+  }, [isSearching, searchQuery, filter, loadError, loadReceipts, t]);
 
   return (
     <AppScreen>
       <View style={styles.flex}>
         <View style={styles.headerPad}>
-          <ScreenHeader title="Kupovine" subtitle={subtitle} />
+          <ScreenHeader title={t('timeline.title')} subtitle={subtitle} />
 
           <SearchField
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Pretraži prodavnicu, proizvod, PIB, broj računa..."
+            placeholder={t('timeline.searchPlaceholder')}
           />
 
           <View style={styles.chips}>
-            {FILTERS.map((f) => (
+            {filters.map((f) => (
               <TouchableOpacity
                 key={f.key}
                 style={[styles.chip, filter === f.key && styles.chipActive]}
@@ -187,7 +191,7 @@ export default function TimelineScreen() {
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityState={{ selected: filter === f.key }}
-                accessibilityLabel={`Filter: ${f.label}`}
+                accessibilityLabel={t('timeline.filter_a11y', { label: f.label })}
               >
                 <Text style={[styles.chipText, filter === f.key && styles.chipTextActive]}>
                   {f.label}
@@ -198,8 +202,14 @@ export default function TimelineScreen() {
 
           {isSearching && displayed.length > 0 ? (
             <Text style={styles.searchHint}>
-              Prikazano {displayed.length} od {filteredByStatus.length}{' '}
-              {filter === 'all' ? 'računa' : 'u filteru'}
+              {t('timeline.searchHint', {
+                shown: displayed.length,
+                total: filteredByStatus.length,
+                scope:
+                  filter === 'all'
+                    ? t('timeline.searchHintScopeAll')
+                    : t('timeline.searchHintScopeFilter'),
+              })}
             </Text>
           ) : null}
         </View>

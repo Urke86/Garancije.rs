@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthShell } from '@/components/auth/AuthShell';
 import { AuthInput } from '@/components/auth/AuthInput';
@@ -14,6 +15,7 @@ import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 
 export default function RegisterScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
 
   const { signUp, signInWithGoogle } = useAuth();
@@ -32,15 +34,15 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!email.trim() || !password) {
-      setError('Popunite sva polja');
+      setError(t('auth.fillAllFields'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Lozinke se ne poklapaju');
+      setError(t('auth.passwordsMismatch'));
       return;
     }
     if (password.length < 6) {
-      setError('Lozinka mora imati najmanje 6 karaktera');
+      setError(t('auth.passwordMinLength'));
       return;
     }
     setLoading(true);
@@ -77,26 +79,25 @@ export default function RegisterScreen() {
   if (pendingEmail) {
     return (
       <AuthShell
-        cardTitle="Proverite email"
-        cardSubtitle="Poslali smo vam link za potvrdu naloga"
+        cardTitle={t('auth.checkEmail')}
+        cardSubtitle={t('auth.checkEmailSubtitle')}
         showBack
       >
         <Text style={styles.pendingText}>
-          Otvorite poruku na adresi {email.trim()} i kliknite na link za aktivaciju. Tek
-          posle toga možete da se prijavite.
+          {t('auth.checkEmailBody', { email: email.trim() })}
         </Text>
-        <AuthPrimaryButton title="Idi na prijavu" onPress={() => router.replace('/(auth)')} />
+        <AuthPrimaryButton title={t('auth.goToLogin')} onPress={() => router.replace('/(auth)')} />
       </AuthShell>
     );
   }
 
   return (
     <AuthShell
-      cardTitle="Kreirajte nalog"
-      cardSubtitle="Besplatno čuvajte račune i garancije"
+      cardTitle={t('auth.createAccount')}
+      cardSubtitle={t('auth.registerSubtitle')}
       showBack
     >
-      <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} label="Registruj se sa Google" />
+      <GoogleSignInButton onPress={handleGoogle} loading={googleLoading} label={t('auth.registerGoogle')} />
 
       <AuthDivider />
 
@@ -104,36 +105,36 @@ export default function RegisterScreen() {
 
       <View style={styles.form}>
         <AuthInput
-          label="E-pošta"
+          label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
           keyboardType="email-address"
           autoComplete="email"
           textContentType="emailAddress"
-          placeholder="vas@email.com"
+          placeholder={t('auth.emailPlaceholder')}
         />
         <AuthInput
-          label="Lozinka"
+          label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
           secureToggle
           autoComplete="new-password"
           textContentType="newPassword"
-          placeholder="Min. 6 karaktera"
+          placeholder={t('auth.passwordMinPlaceholder')}
         />
         <AuthInput
-          label="Potvrdite lozinku"
+          label={t('auth.confirmPassword')}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureToggle
           autoComplete="new-password"
           textContentType="newPassword"
-          placeholder="Ponovite lozinku"
+          placeholder={t('auth.repeatPassword')}
         />
 
         <AuthPrimaryButton
-          title="Registruj se"
+          title={t('auth.registerButton')}
           onPress={handleRegister}
           loading={loading}
           disabled={!canSubmit}
@@ -143,8 +144,8 @@ export default function RegisterScreen() {
       </View>
 
       <TouchableOpacity onPress={() => router.back()} style={styles.linkRow}>
-        <Text style={styles.linkMuted}>Već imate nalog? </Text>
-        <Text style={styles.link}>Prijavite se</Text>
+        <Text style={styles.linkMuted}>{t('auth.haveAccount')} </Text>
+        <Text style={styles.link}>{t('auth.signInLink')}</Text>
       </TouchableOpacity>
     </AuthShell>
   );

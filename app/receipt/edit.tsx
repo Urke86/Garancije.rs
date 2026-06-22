@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
@@ -35,6 +36,7 @@ import { validateReceiptForm } from '@/lib/validation/receipt-form';
 import type { ReceiptFormField } from '@/lib/validation/receipt-form';
 
 export default function EditReceiptScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -95,7 +97,7 @@ export default function EditReceiptScreen() {
         if (pending) {
           applyOcrResult(pending.result, pending.warning, pending.detectedFields ?? []);
         } else {
-          setOcrWarning('OCR podaci nisu pronađeni — unesite ručno ili ponovite prepoznavanje.');
+          setOcrWarning(t('receipt.ocrDataNotFound'));
         }
         setLoadingOcr(false);
         return;
@@ -106,7 +108,7 @@ export default function EditReceiptScreen() {
           const parsed = JSON.parse(params.ocr_data) as OcrReceiptResult;
           applyOcrResult(parsed, params.ocr_warning ?? null);
         } catch {
-          setOcrWarning('OCR podaci nisu validni — unesite podatke ručno.');
+          setOcrWarning(t('receipt.ocrDataInvalid'));
         }
       } else if (params.ocr_warning) {
         setOcrWarning(params.ocr_warning);
@@ -118,7 +120,7 @@ export default function EditReceiptScreen() {
     return () => {
       cancelled = true;
     };
-  }, [params.ocr_key, params.ocr_data, params.ocr_warning, applyOcrResult]);
+  }, [params.ocr_key, params.ocr_data, params.ocr_warning, applyOcrResult, t]);
 
   useEffect(() => {
     return () => {
@@ -131,7 +133,7 @@ export default function EditReceiptScreen() {
   const previewImage = params.local_image_uri || params.image_url || '';
   const recognized = hasRecognizedFields(ocrData);
 
-  const previewName = items.find((i) => i.name.trim())?.name || form.store_name || 'Novi račun';
+  const previewName = items.find((i) => i.name.trim())?.name || form.store_name || t('receipt.newReceiptTitle');
 
   const handleRetryOcr = async () => {
     const imageSource = params.local_image_uri || params.image_url;
@@ -144,15 +146,15 @@ export default function EditReceiptScreen() {
         ? imageSource
         : await loadReceiptImageLocalUri(imageSource);
       if (!localUri) {
-        setError('Nije moguće učitati sliku za ponovni OCR.');
+        setError(t('receipt.ocrImageLoadFailed'));
         return;
       }
 
       const { data, error: ocrError, detectedFields: fields } = await runReceiptOcrFromUri(localUri);
       applyOcrResult(data, ocrError, fields);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Nepoznata greška';
-      setError('OCR greška: ' + message);
+      const message = err instanceof Error ? err.message : t('common.unknownError');
+      setError(t('receipt.ocrErrorPrefix') + message);
     } finally {
       setRetryingOcr(false);
     }
@@ -163,7 +165,7 @@ export default function EditReceiptScreen() {
     const validation = validateReceiptForm(form, items);
     if (!validation.ok) {
       setFieldErrors(validation.fieldErrors);
-      setError(validation.message || 'Proverite unete podatke');
+      setError(validation.message || t('common.checkEnteredData'));
       return;
     }
     setFieldErrors({});
@@ -178,7 +180,7 @@ export default function EditReceiptScreen() {
       );
       if (uploadErr || !path) {
         setSaving(false);
-        setError(uploadErr || 'Greška pri otpremanju slike');
+        setError(uploadErr || t('errors.uploadImageFailed'));
         return;
       }
       imagePath = path;
@@ -198,7 +200,7 @@ export default function EditReceiptScreen() {
 
     setSaving(false);
     if (saveErr || !receiptId) {
-      setError(saveErr || 'Greška pri čuvanju');
+      setError(saveErr || t('errors.saveFailed'));
       return;
     }
     router.replace(`/receipt/${receiptId}`);
@@ -216,18 +218,18 @@ export default function EditReceiptScreen() {
             onPress={() => router.back()}
             style={styles.backBtn}
             accessibilityRole="button"
-            accessibilityLabel="Nazad"
+            accessibilityLabel={t('common.back')}
           >
             <ArrowLeft size={24} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerText}>
-            <Text style={styles.screenTitle}>Novi račun</Text>
+            <Text style={styles.screenTitle}>{t('receipt.newReceiptTitle')}</Text>
             <Text style={styles.screenSubtitle}>
               {loadingOcr
-                ? 'Učitavam OCR podatke...'
+                ? t('receipt.loadingOcr')
                 : recognized
-                  ? 'Podaci su prepoznati na uređaju — proverite pre čuvanja'
-                  : 'Unesite podatke sa računa'}
+                  ? t('receipt.subtitleOcrRecognized')
+                  : t('receipt.subtitleManualEntry')}
             </Text>
           </View>
         </View>
@@ -242,7 +244,7 @@ export default function EditReceiptScreen() {
             onPress={handleRetryOcr}
             disabled={retryingOcr || loadingOcr}
             accessibilityRole="button"
-            accessibilityLabel="Ponovi prepoznavanje računa"
+            accessibilityLabel={t('receipt.retryOcr_a11y')}
           >
             {retryingOcr ? (
               <ActivityIndicator size="small" color={colors.primary} />
@@ -250,7 +252,7 @@ export default function EditReceiptScreen() {
               <RefreshCw size={18} color={colors.primary} />
             )}
             <Text style={styles.retryOcrText}>
-              {retryingOcr ? 'Skeniram račun na uređaju...' : 'Ponovi prepoznavanje'}
+              {retryingOcr ? t('receipt.retryOcrScanning') : t('receipt.retryOcr')}
             </Text>
           </TouchableOpacity>
         ) : null}
@@ -258,7 +260,7 @@ export default function EditReceiptScreen() {
         {loadingOcr ? (
           <View style={styles.infoBanner}>
             <ActivityIndicator size="small" color={colors.primary} />
-            <Text style={styles.infoText}>Učitavam prepoznate podatke...</Text>
+            <Text style={styles.infoText}>{t('receipt.loadingRecognizedData')}</Text>
           </View>
         ) : ocrWarning ? (
           <View style={styles.warningBanner}>
@@ -266,17 +268,11 @@ export default function EditReceiptScreen() {
           </View>
         ) : recognized ? (
           <View style={styles.infoBanner}>
-            <Text style={styles.infoText}>
-              Polja označena „Prepoznato” su automatski popunjena lokalnim OCR-om. Proverite ih pre
-              čuvanja.
-            </Text>
+            <Text style={styles.infoText}>{t('receipt.ocrFieldsInfo')}</Text>
           </View>
         ) : (
           <View style={styles.warningBanner}>
-            <Text style={styles.warningText}>
-              Podaci sa računa nisu automatski prepoznati. Unesite prodavnicu, datum i stavke ručno
-              ili dodirnite „Ponovi prepoznavanje”.
-            </Text>
+            <Text style={styles.warningText}>{t('receipt.ocrNotRecognized')}</Text>
           </View>
         )}
 
@@ -286,9 +282,9 @@ export default function EditReceiptScreen() {
               style={styles.rawTextToggle}
               onPress={() => setShowRawText((v) => !v)}
               accessibilityRole="button"
-              accessibilityLabel="Prikaži prepoznat tekst"
+              accessibilityLabel={t('receipt.recognizedTextToggle_a11y')}
             >
-              <Text style={styles.rawTextTitle}>Prepoznat tekst</Text>
+              <Text style={styles.rawTextTitle}>{t('receipt.recognizedTextTitle')}</Text>
               {showRawText ? (
                 <ChevronUp size={18} color={colors.textMuted} />
               ) : (
@@ -315,7 +311,7 @@ export default function EditReceiptScreen() {
         />
 
         <PrimaryButton
-          title={saving ? 'Čuvam...' : 'Sačuvaj račun'}
+          title={saving ? t('common.saving') : t('receipt.saveReceipt')}
           onPress={handleSave}
           loading={saving}
           style={styles.saveBtn}

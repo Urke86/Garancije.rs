@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export const DEFAULT_REMINDER_OFFSETS = [30, 14, 7, 1] as const;
 
@@ -6,9 +7,9 @@ export type ReminderOffset = (typeof DEFAULT_REMINDER_OFFSETS)[number];
 
 export function buildReminderMessage(name: string, offsetDays: number): string {
   if (offsetDays === 1) {
-    return `Garancija za „${name}” ističe sutra`;
+    return t('reminders.messageTomorrow', { name });
   }
-  return `Garancija za „${name}” ističe za ${offsetDays} dana`;
+  return t('reminders.messageDays', { name, days: offsetDays });
 }
 
 export function computeRemindAt(warrantyExpiresAt: string, offsetDays: number): Date | null {

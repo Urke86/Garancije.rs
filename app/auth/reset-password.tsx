@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform, Linking } from 'react-native';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
 import { useAuth } from '@/contexts/AuthContext';
 import { fontFamily } from '@/lib/typography';
@@ -15,6 +16,7 @@ import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
 
 export default function ResetPasswordScreen() {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -84,11 +86,11 @@ export default function ResetPasswordScreen() {
 
   const handleSubmit = async () => {
     if (password.length < 6) {
-      setError('Lozinka mora imati najmanje 6 karaktera');
+      setError(t('auth.passwordMinLength'));
       return;
     }
     if (password !== confirmPassword) {
-      setError('Lozinke se ne poklapaju');
+      setError(t('auth.passwordsMismatch'));
       return;
     }
 
@@ -108,7 +110,7 @@ export default function ResetPasswordScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
 
-    setSuccess('Lozinka je uspešno promenjena. Preusmeravamo vas...');
+    setSuccess(t('auth.passwordChangedSuccess'));
     setTimeout(() => router.replace('/(tabs)'), 1200);
   };
 
@@ -116,7 +118,7 @@ export default function ResetPasswordScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Proveravamo link za reset...</Text>
+        <Text style={styles.loadingText}>{t('auth.resetCheckingLink')}</Text>
       </View>
     );
   }
@@ -124,10 +126,10 @@ export default function ResetPasswordScreen() {
   if (!sessionReady && error && !password) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorTitle}>Reset lozinke nije moguć</Text>
+        <Text style={styles.errorTitle}>{t('auth.resetNotPossibleTitle')}</Text>
         <Text style={styles.errorBody}>{error}</Text>
         <AuthPrimaryButton
-          title="Nazad na prijavu"
+          title={t('common.backToLogin')}
           onPress={() => router.replace('/(auth)')}
           style={styles.backBtn}
         />
@@ -137,8 +139,8 @@ export default function ResetPasswordScreen() {
 
   return (
     <AuthShell
-      cardTitle="Nova lozinka"
-      cardSubtitle="Unesite i potvrdite novu lozinku za nalog"
+      cardTitle={t('auth.resetCardTitle')}
+      cardSubtitle={t('auth.resetCardSubtitle')}
     >
       <AuthErrorBanner message={error} />
 
@@ -150,26 +152,26 @@ export default function ResetPasswordScreen() {
 
       <View style={styles.form}>
         <AuthInput
-          label="Nova lozinka"
+          label={t('auth.newPassword')}
           value={password}
           onChangeText={setPassword}
           secureToggle
           autoComplete="new-password"
           textContentType="newPassword"
-          placeholder="Najmanje 6 karaktera"
+          placeholder={t('auth.newPasswordPlaceholder')}
         />
         <AuthInput
-          label="Potvrdite lozinku"
+          label={t('auth.confirmPassword')}
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureToggle
           autoComplete="new-password"
           textContentType="newPassword"
-          placeholder="Ponovite lozinku"
+          placeholder={t('auth.repeatPassword')}
         />
 
         <AuthPrimaryButton
-          title="Sačuvaj novu lozinku"
+          title={t('auth.saveNewPassword')}
           onPress={handleSubmit}
           loading={loading}
           disabled={!canSubmit}

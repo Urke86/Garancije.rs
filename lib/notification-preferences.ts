@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 import { DEFAULT_REMINDER_OFFSETS } from '@/lib/reminders';
 
 export interface NotificationPreferences {
@@ -42,9 +43,11 @@ export async function upsertNotificationPreferences(
   return { error: error?.message ?? null };
 }
 
-export const OFFSET_OPTIONS = [
-  { days: 30, label: '30 dana pre' },
-  { days: 14, label: '14 dana pre' },
-  { days: 7, label: '7 dana pre' },
-  { days: 1, label: '1 dan pre' },
-] as const;
+export function getOffsetOptions() {
+  return [
+    { days: 30, label: t('notifications.offset30Days') },
+    { days: 14, label: t('notifications.offset14Days') },
+    { days: 7, label: t('notifications.offset7Days') },
+    { days: 1, label: t('notifications.offset1Day') },
+  ] as const;
+}

@@ -1,5 +1,6 @@
 import type { ReceiptFormState } from '@/components/receipt/ReceiptEditForm';
 import type { ReceiptItemInput } from '@/lib/receipt-persistence';
+import { t } from '@/lib/i18n';
 
 export type ReceiptFormField =
   | 'store_name'
@@ -46,28 +47,28 @@ export function validateReceiptForm(
   const fieldErrors: Partial<Record<ReceiptFormField, string>> = {};
 
   if (!form.store_name.trim()) {
-    fieldErrors.store_name = 'Unesite naziv prodavnice';
+    fieldErrors.store_name = t('errors.validationStoreRequired');
   }
 
   if (!form.purchase_date.trim()) {
-    fieldErrors.purchase_date = 'Unesite datum kupovine';
+    fieldErrors.purchase_date = t('errors.validationDateRequired');
   } else if (!isValidPurchaseDate(form.purchase_date.trim())) {
-    fieldErrors.purchase_date = 'Datum mora biti u formatu GGGG-MM-DD';
+    fieldErrors.purchase_date = t('errors.validationDateFormat');
   }
 
   if (!isValidOptionalAmount(form.total_amount)) {
-    fieldErrors.total_amount = 'Ukupan iznos nije validan';
+    fieldErrors.total_amount = t('errors.validationAmountInvalid');
   }
 
   const namedItems = items.filter((item) => item.name.trim());
   if (namedItems.length === 0) {
-    fieldErrors.items = 'Dodajte bar jedan proizvod sa nazivom';
+    fieldErrors.items = t('errors.addProductRequired');
   }
 
   items.forEach((item, index) => {
     if (!item.name.trim()) return;
     if (!isValidOptionalAmount(item.price)) {
-      fieldErrors[`item_${index}_price`] = 'Cena nije validna';
+      fieldErrors[`item_${index}_price`] = t('errors.validationPriceInvalid');
     }
   });
 

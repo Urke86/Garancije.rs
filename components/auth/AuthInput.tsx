@@ -9,15 +9,18 @@ import {
   Platform,
 } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { useColors } from '@/contexts/ThemeContext';
+
 interface Props extends TextInputProps {
   label: string;
   secureToggle?: boolean;
 }
 
 export function AuthInput({ label, secureToggle, style, ...props }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -48,7 +51,7 @@ export function AuthInput({ label, secureToggle, style, ...props }: Props) {
             onPress={() => setVisible((v) => !v)}
             style={styles.eyeBtn}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            accessibilityLabel={visible ? 'Sakrij lozinku' : 'Prikaži lozinku'}
+            accessibilityLabel={visible ? t('auth.hidePassword_a11y') : t('auth.showPassword_a11y')}
           >
             {visible ? (
               <EyeOff size={20} color={colors.textMuted} />

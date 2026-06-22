@@ -1,63 +1,86 @@
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Moon, Sun } from 'lucide-react-native';
+import { Languages } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useLocale } from '@/contexts/LocaleContext';
+import type { AppLocale } from '@/lib/locale-storage';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
 import type { AppColors } from '@/lib/theme';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
 import { Card } from '@/components/ui/Card';
 
-export function ThemeToggleCard() {
+const OPTIONS: { locale: AppLocale; labelKey: 'common.languageSr' | 'common.languageEn' }[] = [
+  { locale: 'sr', labelKey: 'common.languageSr' },
+  { locale: 'en', labelKey: 'common.languageEn' },
+];
+
+export function LanguageToggleCard() {
   const { t } = useTranslation();
-  const { mode, setMode } = useTheme();
+  const { locale, setLocale } = useLocale();
   const styles = useThemedStyles(createStyles);
 
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
         <View style={styles.iconWrap}>
-          {mode === 'dark' ? (
-            <Moon size={20} color={styles.headerIconColor.color} />
-          ) : (
-            <Sun size={20} color={styles.headerIconColor.color} />
-          )}
+          <Languages size={20} color={styles.headerIconColor.color} />
         </View>
         <View style={styles.headerText}>
-          <Text style={styles.title}>{t('profile.themeTitle')}</Text>
-          <Text style={styles.subtitle}>{t('profile.themeSubtitle')}</Text>
+          <Text style={styles.title}>{t('common.language')}</Text>
+          <Text style={styles.subtitle}>{t('common.languageSubtitle')}</Text>
         </View>
       </View>
 
       <View style={styles.segmented}>
-        <ThemeOption
-          label={t('profile.themeLight')}
-          icon={Sun}
-          active={mode === 'light'}
-          onPress={() => setMode('light')}
-          styles={styles}
-        />
-        <ThemeOption
-          label={t('profile.themeDark')}
-          icon={Moon}
-          active={mode === 'dark'}
-          onPress={() => setMode('dark')}
-          styles={styles}
-        />
+        {OPTIONS.map(({ locale: optionLocale, labelKey }) => (
+          <LanguageOption
+            key={optionLocale}
+            label={t(labelKey)}
+            active={locale === optionLocale}
+            onPress={() => setLocale(optionLocale)}
+            styles={styles}
+          />
+        ))}
       </View>
     </Card>
   );
 }
 
-function ThemeOption({
+export function LanguageSwitcherCompact() {
+  const { t } = useTranslation();
+  const { locale, setLocale } = useLocale();
+  const styles = useThemedStyles(createCompactStyles);
+
+  return (
+    <View style={styles.row}>
+      {OPTIONS.map(({ locale: optionLocale, labelKey }) => {
+        const label = t(labelKey);
+        const active = locale === optionLocale;
+        return (
+          <TouchableOpacity
+            key={optionLocale}
+            style={[styles.chip, active && styles.chipActive]}
+            onPress={() => setLocale(optionLocale)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={t('common.language_a11y', { label })}
+          >
+            <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+}
+
+function LanguageOption({
   label,
-  icon: Icon,
   active,
   onPress,
   styles,
 }: {
   label: string;
-  icon: typeof Sun;
   active: boolean;
   onPress: () => void;
   styles: ReturnType<typeof createStyles>;
@@ -71,9 +94,8 @@ function ThemeOption({
       activeOpacity={0.85}
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
-      accessibilityLabel={t('profile.theme_a11y', { label })}
+      accessibilityLabel={t('common.language_a11y', { label })}
     >
-      <Icon size={18} color={active ? styles.optionIconActive.color : styles.optionIcon.color} />
       <Text style={[styles.optionLabel, active && styles.optionLabelActive]}>{label}</Text>
     </TouchableOpacity>
   );
@@ -120,10 +142,8 @@ const createStyles = (colors: AppColors) =>
     },
     option: {
       flex: 1,
-      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: space.sm,
       paddingVertical: space.md,
       borderRadius: layout.radius - 4,
     },
@@ -132,8 +152,6 @@ const createStyles = (colors: AppColors) =>
       borderWidth: 1,
       borderColor: colors.border,
     },
-    optionIcon: { color: colors.textMuted },
-    optionIconActive: { color: colors.primary },
     optionLabel: {
       fontSize: 14,
       fontFamily: fontFamily.medium,
@@ -141,6 +159,37 @@ const createStyles = (colors: AppColors) =>
     },
     optionLabelActive: {
       color: colors.text,
+      fontFamily: fontFamily.semibold,
+    },
+  });
+
+const createCompactStyles = (colors: AppColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignSelf: 'flex-end',
+      gap: space.xs,
+      marginBottom: space.sm,
+    },
+    chip: {
+      paddingHorizontal: space.md,
+      paddingVertical: space.xs + 2,
+      borderRadius: layout.radius - 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    chipActive: {
+      borderColor: colors.primary,
+      backgroundColor: colors.accentLight,
+    },
+    chipLabel: {
+      fontSize: 13,
+      fontFamily: fontFamily.medium,
+      color: colors.textMuted,
+    },
+    chipLabelActive: {
+      color: colors.primary,
       fontFamily: fontFamily.semibold,
     },
   });

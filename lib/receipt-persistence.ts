@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 import { calculateWarrantyExpiry } from '@/lib/warranty';
 import { createRemindersForItem, syncRemindersForItem } from '@/lib/reminders';
 
@@ -41,7 +42,7 @@ export async function saveNewReceipt(
     .maybeSingle();
 
   if (receiptErr || !receipt) {
-    return { receiptId: null, error: 'Greška pri čuvanju računa' };
+    return { receiptId: null, error: t('errors.saveReceiptFailed') };
   }
 
   const itemError = await insertItemsWithReminders(userId, receipt.id, form.purchase_date, items);
@@ -61,7 +62,7 @@ async function insertItemsWithReminders(
 ): Promise<string | null> {
   const validItems = items.filter((i) => i.name.trim());
   if (validItems.length === 0) {
-    return 'Dodajte bar jedan proizvod sa nazivom';
+    return t('errors.addProductRequired');
   }
 
   const itemsToInsert = validItems.map((i) => ({
@@ -82,7 +83,7 @@ async function insertItemsWithReminders(
     .insert(itemsToInsert)
     .select('id, warranty_expires_at, name');
 
-  if (error) return 'Greška pri dodavanju stavki';
+  if (error) return t('errors.addItemsFailed');
 
   for (const row of insertedItems ?? []) {
     if (row.warranty_expires_at) {
@@ -113,7 +114,7 @@ export async function updateReceipt(
     .eq('id', receiptId)
     .eq('user_id', userId);
 
-  if (receiptErr) return { error: 'Greška pri ažuriranju računa' };
+  if (receiptErr) return { error: t('errors.updateReceiptFailed') };
 
   if (removedItemIds.length > 0) {
     await supabase.from('receipt_items').delete().in('id', removedItemIds).eq('user_id', userId);
@@ -131,7 +132,7 @@ async function syncReceiptItems(
 ): Promise<string | null> {
   const validItems = items.filter((i) => i.name.trim());
   if (validItems.length === 0) {
-    return 'Dodajte bar jedan proizvod sa nazivom';
+    return t('errors.addProductRequired');
   }
 
   for (const item of validItems) {
@@ -151,7 +152,7 @@ async function syncReceiptItems(
         .update(payload)
         .eq('id', item.id)
         .eq('user_id', userId);
-      if (error) return 'Greška pri ažuriranju stavki';
+      if (error) return t('errors.updateItemsFailed');
       await syncRemindersForItem(userId, item.id, payload.name, warrantyExpiresAt);
     } else {
       const { data: inserted, error } = await supabase
@@ -159,7 +160,7 @@ async function syncReceiptItems(
         .insert({ ...payload, receipt_id: receiptId, user_id: userId })
         .select('id, warranty_expires_at, name')
         .maybeSingle();
-      if (error) return 'Greška pri dodavanju stavki';
+      if (error) return t('errors.addItemsFailed');
       if (inserted?.warranty_expires_at) {
         await createRemindersForItem(
           userId,
@@ -194,7 +195,7 @@ export async function updateReceiptItem(
     .eq('id', itemId)
     .eq('user_id', userId);
 
-  if (error) return { error: 'Greška pri čuvanju proizvoda' };
+  if (error) return { error: t('errors.saveProductFailed') };
 
   await syncRemindersForItem(userId, itemId, data.name.trim(), warrantyExpiresAt);
   return { error: null };

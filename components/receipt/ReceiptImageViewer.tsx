@@ -1,5 +1,6 @@
 import { Modal, View, StyleSheet, TouchableOpacity, Text, Platform, Image } from 'react-native';
 import { X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { fontFamily } from '@/lib/typography';
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function ReceiptImageViewer({ visible, imageUri, title, onClose }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -80,7 +82,7 @@ export function ReceiptImageViewer({ visible, imageUri, title, onClose }: Props)
         <View style={styles.backdrop}>
           <View style={styles.header}>
             <Text style={styles.title} numberOfLines={1}>
-              {title ?? 'Fotografija računa'}
+              {title ?? t('receipt.viewerDefaultTitle')}
             </Text>
             <TouchableOpacity onPress={onClose} hitSlop={12} style={styles.closeBtn}>
               <X size={24} color={colors.textInverse} />
@@ -91,7 +93,7 @@ export function ReceiptImageViewer({ visible, imageUri, title, onClose }: Props)
             Platform.OS === 'web' ? (
               <View style={styles.webImageWrap}>
                 <Image source={{ uri: imageUri }} style={styles.webImage} resizeMode="contain" />
-                <Text style={styles.webHint}>Koristite zoom pregledača (Ctrl + točkić miša)</Text>
+                <Text style={styles.webHint}>{t('receipt.viewerWebZoomHint')}</Text>
               </View>
             ) : (
               <GestureDetector gesture={composed}>
@@ -102,7 +104,7 @@ export function ReceiptImageViewer({ visible, imageUri, title, onClose }: Props)
             )
           ) : null}
 
-          <Text style={styles.hint}>Prevucite prstima za pomeranje · uštipnite za zum</Text>
+          <Text style={styles.hint}>{t('receipt.viewerGestureHint')}</Text>
         </View>
       </GestureHandlerRootView>
     </Modal>

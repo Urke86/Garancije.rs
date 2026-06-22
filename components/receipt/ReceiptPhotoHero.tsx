@@ -1,6 +1,7 @@
 import { View, Text, StyleSheet, Image, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import type { ReactNode } from 'react';
 import { Eye, FileDown, Share2, Receipt as ReceiptIcon } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { fontFamily } from '@/lib/typography';
 import { useReceiptImageUri } from '@/hooks/useReceiptImageUri';
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function ReceiptPhotoHero({ imageStored, productName }: Props) {
+  const { t } = useTranslation();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -28,23 +30,21 @@ export function ReceiptPhotoHero({ imageStored, productName }: Props) {
     return (
       <Card style={styles.emptyCard}>
         <ReceiptIcon size={32} color={colors.textMuted} />
-        <Text style={styles.emptyTitle}>Fotografija nije sačuvana</Text>
-        <Text style={styles.emptyBody}>
-          Slika računa nije povezana sa ovom kupovinom.
-        </Text>
+        <Text style={styles.emptyTitle}>{t('receipt.photoNotSavedTitle')}</Text>
+        <Text style={styles.emptyBody}>{t('receipt.photoNotSavedBody')}</Text>
       </Card>
     );
   }
 
   const handlePdf = async () => {
-    if (!uri) return Alert.alert('Sačekajte', 'Slika se učitava.');
+    if (!uri) return Alert.alert(t('common.wait'), t('common.imageLoading'));
     setBusy('pdf');
-    await downloadReceiptPhotoAsPdf(uri, `Račun — ${productName}`);
+    await downloadReceiptPhotoAsPdf(uri, t('receipt.pdfTitlePrefix', { name: productName }));
     setBusy(null);
   };
 
   const handleShare = async () => {
-    if (!uri) return Alert.alert('Sačekajte', 'Slika se učitava.');
+    if (!uri) return Alert.alert(t('common.wait'), t('common.imageLoading'));
     setBusy('share');
     await shareReceiptPhoto(uri, productName);
     setBusy(null);
@@ -52,7 +52,7 @@ export function ReceiptPhotoHero({ imageStored, productName }: Props) {
 
   return (
     <Card style={styles.card} padded={false}>
-      <Text style={styles.label}>Fotografija fiskalnog računa</Text>
+      <Text style={styles.label}>{t('receipt.photoLabel')}</Text>
 
       <TouchableOpacity
         activeOpacity={0.9}
@@ -60,19 +60,19 @@ export function ReceiptPhotoHero({ imageStored, productName }: Props) {
         disabled={!uri || loading}
         style={styles.previewWrap}
         accessibilityRole="button"
-        accessibilityLabel="Prikaži fotografiju računa na punom ekranu"
+        accessibilityLabel={t('receipt.photoFullscreen_a11y')}
       >
         {loading ? (
           <ActivityIndicator size="large" color={colors.primary} />
         ) : uri ? (
           <Image source={{ uri }} style={styles.preview} resizeMode="contain" />
         ) : (
-          <Text style={styles.previewError}>Slika nije dostupna</Text>
+          <Text style={styles.previewError}>{t('receipt.photoUnavailable')}</Text>
         )}
         {uri ? (
           <View style={styles.previewOverlay}>
             <Eye size={18} color={colors.textInverse} />
-            <Text style={styles.previewOverlayText}>Tapni za pun ekran</Text>
+            <Text style={styles.previewOverlayText}>{t('receipt.photoTapFullscreen')}</Text>
           </View>
         ) : null}
       </TouchableOpacity>
@@ -80,19 +80,23 @@ export function ReceiptPhotoHero({ imageStored, productName }: Props) {
       <View style={styles.actions}>
         <ActionChip
           icon={<Eye size={18} color={colors.primary} />}
-          label="Prikaži"
-          onPress={() => (uri ? setViewerOpen(true) : Alert.alert('Greška', 'Slika nije dostupna.'))}
+          label={t('receipt.photoShow')}
+          onPress={() =>
+            uri
+              ? setViewerOpen(true)
+              : Alert.alert(t('common.error'), t('receipt.photoUnavailableAlert'))
+          }
           disabled={!uri || loading}
         />
         <ActionChip
           icon={busy === 'pdf' ? <ActivityIndicator size="small" color={colors.primary} /> : <FileDown size={18} color={colors.primary} />}
-          label="Preuzmi PDF"
+          label={t('receipt.photoDownloadPdf')}
           onPress={handlePdf}
           disabled={!uri || loading || busy !== null}
         />
         <ActionChip
           icon={busy === 'share' ? <ActivityIndicator size="small" color={colors.primary} /> : <Share2 size={18} color={colors.primary} />}
-          label="Pošalji"
+          label={t('receipt.photoShare')}
           onPress={handleShare}
           disabled={!uri || loading || busy !== null}
         />

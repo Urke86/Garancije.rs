@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import * as AuthSession from 'expo-auth-session';
 import * as QueryParams from 'expo-auth-session/build/QueryParams';
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 const RESET_PATH = 'auth/reset-password';
 
@@ -66,10 +67,10 @@ function cleanRecoveryUrl(): void {
 export function translateRecoveryError(message: string): string {
   const lower = message.toLowerCase();
   if (lower.includes('invalid') && lower.includes('expired')) {
-    return 'Link za reset lozinke nije važeći ili je istekao. Zatražite novi link sa ekrana za prijavu.';
+    return t('auth.recoveryLinkInvalid');
   }
   if (lower.includes('code verifier')) {
-    return 'Otvorite link u istom pregledaču gde ste zatražili reset, ili zatražite novi link.';
+    return t('auth.recoveryCodeVerifier');
   }
   return message;
 }
@@ -159,7 +160,7 @@ export async function establishRecoverySession(initialUrl?: string | null): Prom
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   if (sessionError) return translateRecoveryError(sessionError.message);
   if (!session) {
-    return 'Link za reset lozinke nije važeći ili je istekao. Zatražite novi link sa ekrana za prijavu.';
+    return t('auth.recoveryLinkInvalid');
   }
 
   return null;
