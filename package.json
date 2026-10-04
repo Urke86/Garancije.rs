@@ -13,7 +13,9 @@
     "export:upload-cert": "node scripts/export-eas-upload-certificate.mjs",
     "generate:feature-graphic": "node scripts/generate-play-feature-graphic.mjs",
     "testers:import": "node scripts/import-closed-testers.mjs",
-    "notify:update": "node scripts/notify-app-update.mjs"
+    "notify:update": "node scripts/notify-app-update.mjs",
+    "demo:web": "node scripts/demo-web.mjs",
+    "portfolio:screenshots": "node scripts/capture-portfolio-screenshots.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -76,6 +78,7 @@
     "jks-js": "^1.1.7",
     "node-forge": "^1.4.0",
     "opentype.js": "^2.0.0",
+    "puppeteer-core": "^25.12.0",
     "sharp": "^0.34.2",
     "typescript": "~5.9.2"
   }

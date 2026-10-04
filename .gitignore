@@ -44,3 +44,6 @@ supabase/cron/*.deployed.sql
 
 # typescript
 *.tsbuildinfo
+
+# generated portfolio screenshots (npm run portfolio:screenshots)
+portfolio-screenshots/

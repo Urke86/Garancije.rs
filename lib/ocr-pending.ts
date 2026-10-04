@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { OcrReceiptResult, OcrDetectableField } from '@/lib/ocr-receipt';
+import { DEMO_MODE, DEMO_OCR_KEY } from '@/lib/demo/demo-mode';
+import { createDemoPendingOcr } from '@/lib/demo/demo-data';
 
 const PREFIX = 'pending-ocr:';
 
@@ -16,6 +18,7 @@ export async function savePendingOcr(payload: PendingOcrPayload): Promise<string
 }
 
 export async function loadPendingOcr(key: string): Promise<PendingOcrPayload | null> {
+  if (DEMO_MODE && key === DEMO_OCR_KEY) return createDemoPendingOcr();
   const raw = await AsyncStorage.getItem(key);
   if (!raw) return null;
   try {
