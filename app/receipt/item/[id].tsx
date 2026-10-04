@@ -10,11 +10,12 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useDateLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
 import {
-  CATEGORIES,
+  getCategories,
   getCategoryLabel,
   getDefaultWarrantyMonths,
   getWarrantyStatus,
@@ -53,6 +54,7 @@ interface ItemDetail {
 
 export default function ReceiptItemDetailScreen() {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -221,7 +223,7 @@ export default function ReceiptItemDetailScreen() {
               <Text style={styles.editSectionTitle}>{t('receipt.editProductSection')}</Text>
               <Text style={styles.fieldLabel}>{t('receipt.fieldCategory')}</Text>
               <View style={styles.chips}>
-                {CATEGORIES.map((cat) => (
+                {getCategories().map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
                     style={[styles.chip, category === cat.id && styles.chipActive]}
@@ -317,12 +319,12 @@ export default function ReceiptItemDetailScreen() {
               ) : null}
               <DetailRow
                 label={t('receipt.fieldProductPrice')}
-                value={`${Number(item.price).toLocaleString('sr-RS')} RSD`}
+                value={`${Number(item.price).toLocaleString(dateLocale)} RSD`}
                 muted
               />
               <DetailRow
                 label={t('receipt.fieldTotalAmount')}
-                value={`${Number(receipt.total_amount).toLocaleString('sr-RS')} RSD`}
+                value={`${Number(receipt.total_amount).toLocaleString(dateLocale)} RSD`}
                 muted
               />
               {receipt.pib ? <DetailRow label={t('receipt.fieldPib')} value={receipt.pib} muted /> : null}

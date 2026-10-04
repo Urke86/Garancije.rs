@@ -75,7 +75,7 @@ export function useLocale() {
 
 export function useDateLocale(): string {
   const { locale } = useLocale();
-  return locale === 'en' ? 'en-US' : 'sr-RS';
+  return locale === 'en' ? 'en-US' : 'sr-Latn-RS';
 }
 
 export function useI18nReady(): boolean {

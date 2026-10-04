@@ -1,4 +1,4 @@
-import { CATEGORIES, formatSerbianDate } from '@/lib/warranty';
+import { getCategories, formatSerbianDate } from '@/lib/warranty';
 
 export interface SearchableReceiptItem {
   id: string;
@@ -29,7 +29,7 @@ function normalizeForSearch(value: string): string {
 
 function categoryLabel(categoryId?: string): string {
   if (!categoryId) return '';
-  return CATEGORIES.find((c) => c.id === categoryId)?.label ?? categoryId;
+  return getCategories().find((c) => c.id === categoryId)?.label ?? categoryId;
 }
 
 export function buildReceiptSearchText(receipt: SearchableReceipt): string {

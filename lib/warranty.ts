@@ -92,7 +92,7 @@ export function formatLocalizedDate(dateStr: string, locale?: AppLocale): string
 
 /** @deprecated use formatLocalizedDate */
 export function formatSerbianDate(dateStr: string): string {
-  return formatLocalizedDate(dateStr, 'sr');
+  return formatLocalizedDate(dateStr);
 }
 
 export interface WarrantyRemainingParts {

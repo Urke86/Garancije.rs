@@ -42,5 +42,5 @@ export async function saveLocale(userId: string | null, locale: AppLocale): Prom
 }
 
 export function getDateLocale(locale: AppLocale): string {
-  return locale === 'en' ? 'en-US' : 'sr-RS';
+  return locale === 'en' ? 'en-US' : 'sr-Latn-RS';
 }

@@ -3,7 +3,7 @@ import { Plus, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { fontFamily } from '@/lib/typography';
 import { space } from '@/lib/spacing';
-import { CATEGORIES, getDefaultWarrantyMonths } from '@/lib/warranty';
+import { getCategories, getDefaultWarrantyMonths } from '@/lib/warranty';
 import type { ReceiptItemInput } from '@/lib/receipt-persistence';
 import { Card } from '@/components/ui/Card';
 import { useThemedStyles } from '@/hooks/useThemedStyles';
@@ -171,7 +171,7 @@ export function ReceiptEditForm({
           />
           <Text style={styles.chipsLabel}>{t('receipt.fieldCategory')}</Text>
           <View style={styles.chips}>
-            {CATEGORIES.map((cat) => (
+            {getCategories().map((cat) => (
               <TouchableOpacity
                 key={cat.id}
                 style={[styles.chip, item.category === cat.id && styles.chipActive]}

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useDateLocale } from '@/contexts/LocaleContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { fontFamily } from '@/lib/typography';
@@ -55,6 +56,7 @@ interface ReceiptRecord {
 
 export default function ReceiptDetailScreen() {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -324,7 +326,7 @@ export default function ReceiptDetailScreen() {
               <Text style={styles.summaryTitle}>{t('receipt.overviewTitle')}</Text>
               <SummaryRow label={t('receipt.fieldStore')} value={receipt.store_name || '—'} />
               <SummaryRow label={t('receipt.fieldPurchaseDate')} value={formatSerbianDate(receipt.purchase_date)} />
-              <SummaryRow label={t('receipt.fieldTotalAmount')} value={`${Number(receipt.total_amount).toLocaleString('sr-RS')} RSD`} muted />
+              <SummaryRow label={t('receipt.fieldTotalAmount')} value={`${Number(receipt.total_amount).toLocaleString(dateLocale)} RSD`} muted />
               {receipt.pib ? <SummaryRow label={t('receipt.fieldPib')} value={receipt.pib} muted /> : null}
               {receipt.receipt_number ? (
                 <SummaryRow label={t('receipt.fieldReceiptNumber')} value={receipt.receipt_number} muted />

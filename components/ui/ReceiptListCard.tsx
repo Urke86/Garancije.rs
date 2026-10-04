@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } fr
 import { Receipt, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useDateLocale } from '@/contexts/LocaleContext';
 import { fontFamily } from '@/lib/typography';
 import { layout, space } from '@/lib/spacing';
 import { formatSerbianDate } from '@/lib/warranty';
@@ -40,6 +41,7 @@ export function ReceiptListCard({
   onPress,
 }: ReceiptListCardProps) {
   const { t } = useTranslation();
+  const dateLocale = useDateLocale();
   const styles = useThemedStyles(createStyles);
   const colors = useColors();
 
@@ -87,7 +89,7 @@ export function ReceiptListCard({
           </Text>
           <Text style={styles.merchantMeta}>
             {items.length} {t('common.product', { count: items.length })} · {t('common.total')}{' '}
-            {Number(totalAmount).toLocaleString('sr-RS')} RSD
+            {Number(totalAmount).toLocaleString(dateLocale)} RSD
           </Text>
         </View>
         <ChevronRight size={20} color={colors.textMuted} />
